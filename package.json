@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node start-with-tunnel.js",
     "start:phone": "node start-with-tunnel.js",
-    "test": "node --test --test-concurrency=1 test/**/*.test.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-game.ps1"
   },
   "engines": {
