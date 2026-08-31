@@ -15,9 +15,9 @@
   const HAND_KEY = 'tennis-handedness';
 
     const SWING = {
-    cooldownMs: 650,
+    cooldownMs: 420,
     minPeak: 9,
-    bufferMs: 450,
+    bufferMs: 300,
   };
 
   const NAME_KEY = 'tennis-player-name';
@@ -85,7 +85,7 @@
     touchActive: false,
   };
 
-  const socket = io({ transports: ['websocket', 'polling'] });
+  const socket = io({ transports: ['websocket', 'polling'], upgrade: true, rememberUpgrade: true });
 
   function setStatus(text) {
     els.statusText.textContent = text;
@@ -751,6 +751,7 @@
         side: hitSide,
         aim,
         powerLevel: level,
+        ts: Date.now(),
       });
     }
 

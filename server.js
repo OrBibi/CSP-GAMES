@@ -63,7 +63,13 @@ async function main() {
   const store = createRoomStore();
 
   const httpServer = http.createServer(app);
-  const io = new Server(httpServer, { cors: { origin: '*' } });
+  const io = new Server(httpServer, {
+    cors: { origin: '*' },
+    transports: ['websocket', 'polling'],
+    pingInterval: 8000,
+    pingTimeout: 4000,
+    perMessageDeflate: false,
+  });
   io._cspLanIp = lanIp;
   io._cspHttpPort = PORT;
   io._cspHttpsPort = HTTPS_PORT;
@@ -86,7 +92,13 @@ async function main() {
 
   const tls = await ensureTlsCerts(lanIp);
   const httpsServer = https.createServer(tls, app);
-  const ioHttps = new Server(httpsServer, { cors: { origin: '*' } });
+  const ioHttps = new Server(httpsServer, {
+    cors: { origin: '*' },
+    transports: ['websocket', 'polling'],
+    pingInterval: 8000,
+    pingTimeout: 4000,
+    perMessageDeflate: false,
+  });
   ioHttps._cspLanIp = lanIp;
   ioHttps._cspHttpPort = PORT;
   ioHttps._cspHttpsPort = HTTPS_PORT;
@@ -94,7 +106,13 @@ async function main() {
 
   await new Promise((resolve) => httpServer.listen(PORT, HOST, resolve));
   const httpAlt = http.createServer(app);
-  const ioAlt = new Server(httpAlt, { cors: { origin: '*' } });
+  const ioAlt = new Server(httpAlt, {
+    cors: { origin: '*' },
+    transports: ['websocket', 'polling'],
+    pingInterval: 8000,
+    pingTimeout: 4000,
+    perMessageDeflate: false,
+  });
   ioAlt._cspLanIp = lanIp;
   ioAlt._cspHttpPort = PORT;
   ioAlt._cspHttpsPort = HTTPS_PORT;

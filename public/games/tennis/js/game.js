@@ -5,6 +5,9 @@ import * as THREE from '/vendor/three/build/three.module.js';
 import { CrowdAudio } from './crowd-audio.js';
 
 const GAME_ID = 'tennis';
+const PAGE_PARAMS = new URLSearchParams(window.location.search);
+const GUEST_SCREEN = PAGE_PARAMS.get('guest') === '1';
+const JOIN_ROOM_PARAM = (PAGE_PARAMS.get('room') || '').trim().toUpperCase();
 
 const COURT = {
   halfLength: 12, // Z extent each side from net
@@ -27,7 +30,7 @@ const HIT = {
   powerUp: 6.7,
   /** AI return chance by incoming human power level 1..5 */
   aiReturnChance: [0.9, 0.85, 0.8, 0.75, 0.7],
-  swingWindowMs: 550,
+  swingWindowMs: 780,
   /** How far past the sideline players may auto-run */
   runOverhang: 2.2,
   /** |ball.x| above this = clearly left/right side of court */
@@ -80,9 +83,8 @@ function phoneToLogicSide(raw) {
   return raw;
 }
 
-function drawQr(canvas, text) {
-  // Prefer server-generated PNG (no CDN). Fallback to canvas lib if present.
-  const img = document.getElementById('qr-img');
+function drawQr(canvas, text, imgId) {
+  const img = document.getElementById(imgId || 'qr-img');
   if (img) {
     img.src = `/api/qr?text=${encodeURIComponent(text)}&t=${Date.now()}`;
     img.classList.remove('hidden');
@@ -111,9 +113,13 @@ function drawQr(canvas, text) {
 
 class TennisGame {
   constructor() {
-    this.socket = io();
+    this.socket = io({ transports: ['websocket', 'polling'], upgrade: true, rememberUpgrade: true });
     this.room = null;
     this.controllerUrl = '';
+    this.isGuestScreen = GUEST_SCREEN;
+    this.setupMode = GUEST_SCREEN ? 'remote' : 'couch';
+    this.guestView = false;
+    this._syncFrame = 0;
     this.controllers = { p1: false, p2: false, ready1: false, ready2: false, name1: 'P1', name2: 'P2' };
     this.playerNames = { p1: 'P1', p2: 'P2' };
     this.mode = null; // 'ai' | 'local'
@@ -162,6 +168,7 @@ class TennisGame {
     this._buildDom();
     this._bindSocket();
     this._bindUi();
+    this._updateSetupModeUi();
     this._bindKeyboard();
     this._joinAsScreen();
     this._initGraphics();
@@ -256,6 +263,14 @@ class TennisGame {
       victorySub: document.getElementById('victory-sub'),
       btnVictoryLobby: document.getElementById('btn-victory-lobby'),
       fireworksCanvas: document.getElementById('fireworks-canvas'),
+      setupModePills: document.getElementById('setup-mode'),
+      couchPanel: document.getElementById('couch-panel'),
+      remoteGuestPanel: document.getElementById('remote-guest-panel'),
+      joinRoomInput: document.getElementById('join-room-input'),
+      btnJoinRoom: document.getElementById('btn-join-room'),
+      btnCopyRoom: document.getElementById('btn-copy-room'),
+      qrP1: document.getElementById('qr-p1'),
+      qrP2: document.getElementById('qr-p2'),
     };
   }
 
@@ -744,6 +759,52 @@ class TennisGame {
     this._onResize();
   }
 
+  _setGuestCamera() {
+    this.guestView = true;
+    this._onResize();
+  }
+
+  _applyGameSync(payload) {
+    if (payload.match) this.match = payload.match;
+    if (payload.playerNames) {
+      this.playerNames = payload.playerNames;
+      this._applyNamesToHud();
+    }
+    if (payload.servingSide) this.servingSide = payload.servingSide;
+    if (payload.mode) this.mode = payload.mode;
+    if (payload.ball) {
+      this.ball.pos.x = payload.ball.pos?.x ?? this.ball.pos.x;
+      this.ball.pos.y = payload.ball.pos?.y ?? this.ball.pos.y;
+      this.ball.pos.z = payload.ball.pos?.z ?? this.ball.pos.z;
+      this.ball.vel.x = payload.ball.vel?.x ?? this.ball.vel.x;
+      this.ball.vel.y = payload.ball.vel?.y ?? this.ball.vel.y;
+      this.ball.vel.z = payload.ball.vel?.z ?? this.ball.vel.z;
+      this.ball.inPlay = !!payload.ball.inPlay;
+      this.ball.alive = payload.ball.alive !== false;
+    }
+    if (payload.r1 != null && this.racket1) this.racket1.position.x = payload.r1;
+    if (payload.r2 != null && this.racket2) this.racket2.position.x = payload.r2;
+    this._updateScoreHud();
+  }
+
+  _emitGameSync() {
+    if (this.isGuestScreen || !this.running || !this.room) return;
+    this.socket.emit('gameSync', {
+      match: this.match,
+      playerNames: this.playerNames,
+      servingSide: this.servingSide,
+      mode: this.mode,
+      ball: {
+        pos: { x: this.ball.pos.x, y: this.ball.pos.y, z: this.ball.pos.z },
+        vel: { x: this.ball.vel.x, y: this.ball.vel.y, z: this.ball.vel.z },
+        inPlay: this.ball.inPlay,
+        alive: this.ball.alive,
+      },
+      r1: this.racket1?.position.x ?? 0,
+      r2: this.racket2?.position.x ?? 0,
+    });
+  }
+
   _renderScene() {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -758,6 +819,10 @@ class TennisGame {
       this.renderer.setScissor(w / 2, 0, w / 2, h);
       this.renderer.render(this.scene, this.camera2);
       this.renderer.setScissorTest(false);
+    } else if (this.guestView && this.camera2) {
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, w, h);
+      this.renderer.render(this.scene, this.camera2);
     } else {
       this.renderer.setScissorTest(false);
       this.renderer.setViewport(0, 0, w, h);
@@ -816,6 +881,8 @@ class TennisGame {
       this.controllerUrl = serverUrls.controllerUrlHttps;
       this.el.controllerUrl.textContent = this.controllerUrl;
       drawQr(this.el.qr, this.controllerUrl);
+      drawQr(this.el.qr, this.controllerUrl, 'qr-p1');
+      drawQr(this.el.qr, this.controllerUrl, 'qr-p2');
       this.el.connectHint.classList.remove('hidden');
       this.el.connectHint.textContent =
         'Scan QR on your phone (HTTPS). Tap Enable Motion, then Ready.';
@@ -827,6 +894,8 @@ class TennisGame {
     this.controllerUrl = base + '/controller?game=' + GAME_ID + '&room=' + encodeURIComponent(room);
     this.el.controllerUrl.textContent = this.controllerUrl;
     drawQr(this.el.qr, this.controllerUrl);
+    drawQr(this.el.qr, this.controllerUrl, 'qr-p1');
+    drawQr(this.el.qr, this.controllerUrl, 'qr-p2');
     const isHttps = this.controllerUrl.startsWith('https://');
     this.el.connectHint.classList.remove('hidden');
     if (isHttps) {
@@ -838,6 +907,33 @@ class TennisGame {
         'Waiting for HTTPS tunnel… keep start.bat running until trycloudflare.com appears, then Ctrl+F5.';
       this.el.lobbyStatus.textContent = 'Tunnel not ready yet — wait for start.bat to show HTTPS URL.';
     }
+  }
+
+  _joinAsGuestScreen(code) {
+    if (this._joining) return;
+    this._joining = true;
+    this.el.lobbyStatus.textContent = 'Joining room as P2 screen…';
+    this.socket.emit(
+      'join',
+      { role: 'screen', game: GAME_ID, room: code, guestScreen: true },
+      async (res) => {
+        this._joining = false;
+        if (!res?.ok) {
+          this.el.lobbyStatus.textContent = res?.error || 'Could not join room.';
+          return;
+        }
+        this.room = res.room;
+        this.isGuestScreen = true;
+        this.controllers = res.controllers || this.controllers;
+        this.el.roomCode.textContent = this.room;
+        this.el.lobbyStatus.textContent =
+          'P2 screen connected. Scan QR on THIS computer for the P2 phone. Host starts the match.';
+        this.controllerUrl = this._buildControllerUrl(res.room, res.controllerUrlHttps || res.controllerUrl, res.lanIp);
+        await this._applyPhoneUrl(this.room, res.lanIp, res);
+        this._refreshLobby();
+        this._updateSetupModeUi();
+      }
+    );
   }
 
   _joinAsScreen() {
@@ -877,17 +973,29 @@ class TennisGame {
     this.socket.on('connect', () => {
       this.el.lobbyStatus.textContent = this.room
         ? 'Reconnected. Waiting for phones…'
-        : 'Connected. Creating room…';
+        : GUEST_SCREEN && JOIN_ROOM_PARAM
+          ? 'Connecting guest screen…'
+          : 'Connected. Creating room…';
       if (!this.room) {
-        this._joinAsScreen();
+        if (GUEST_SCREEN && JOIN_ROOM_PARAM) this._joinAsGuestScreen(JOIN_ROOM_PARAM);
+        else this._joinAsScreen();
         return;
       }
-      this.socket.emit('join', { role: 'screen', room: this.room }, (res) => {
-        if (res?.ok) {
-          this.controllers = res.controllers;
-          this._refreshLobby();
+      this.socket.emit(
+        'join',
+        {
+          role: 'screen',
+          game: GAME_ID,
+          room: this.room,
+          guestScreen: this.isGuestScreen,
+        },
+        (res) => {
+          if (res?.ok) {
+            this.controllers = res.controllers;
+            this._refreshLobby();
+          }
         }
-      });
+      );
     });
 
     this.socket.on('connect_error', (err) => {
@@ -958,15 +1066,14 @@ class TennisGame {
 
     this.socket.on('swing', (data) => {
       const slot = data.slot;
-      if (!this.inputs[slot]) return;
+      if (!this.inputs[slot] || (this.isGuestScreen && !this.running)) return;
       const raw =
         data.side === 'left' || data.side === 'right' ? data.side : null;
-      // Ignore anything that is not left/right (overhead disabled)
       if (!raw) return;
-      // Phone reports the player's hand-relative side; same flip for P1 and P2
       const side = phoneToLogicSide(raw);
       this.inputs[slot].pendingSwing = true;
-      this.inputs[slot].swingAt = performance.now();
+      const netLag = data.ts ? Math.max(0, Math.min(400, Date.now() - data.ts)) : 0;
+      this.inputs[slot].swingAt = performance.now() - netLag;
       this.inputs[slot].intensity = clamp(Number(data.intensity) || 0.55, 0.1, 1);
       this.inputs[slot].aim = clamp(Number(data.aim) || 0, -1, 1);
       const pl = Math.round(Number(data.powerLevel) || 0);
@@ -974,6 +1081,31 @@ class TennisGame {
         pl >= 1 && pl <= 5 ? pl : powerLevelFromIntensity(this.inputs[slot].intensity);
       this.inputs[slot].side = side;
       this.inputs[slot].phoneSide = raw;
+      if (this.running && !this.isGuestScreen) {
+        this._tryHit(slot);
+      }
+    });
+
+    this.socket.on('gameSync', (payload) => {
+      if (!this.isGuestScreen || !payload) return;
+      this._applyGameSync(payload);
+    });
+
+    this.socket.on('gameStarted', (data) => {
+      if (!this.isGuestScreen) return;
+      this.mode = data?.mode === 'local' ? 'local' : 'ai';
+      this.running = true;
+      this.el.lobby.classList.add('hidden');
+      this.el.hud.classList.remove('hidden');
+      this._setSplitScreen(false);
+      this._setGuestCamera();
+      if (data?.controllers) this.controllers = data.controllers;
+      this._syncNamesFromControllers(this.controllers);
+      this._applyNamesToHud();
+      this._updateScoreHud();
+      this._showMessage('Match started — P2 view');
+      this.crowd.unlock();
+      this.crowd.startAmbience();
     });
 
     this.socket.on('calibrate', (data) => {
@@ -1005,6 +1137,29 @@ class TennisGame {
       } catch {
         this.el.lobbyStatus.textContent = this.controllerUrl;
       }
+    });
+    this.el.btnCopyRoom?.addEventListener('click', async () => {
+      if (!this.room) return;
+      try {
+        await navigator.clipboard.writeText(this.room);
+        this.el.lobbyStatus.textContent = `Room code ${this.room} copied.`;
+      } catch {
+        this.el.lobbyStatus.textContent = `Room code: ${this.room}`;
+      }
+    });
+    this.el.setupModePills?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-setup]');
+      if (!btn || this.isGuestScreen) return;
+      this._setSetupMode(btn.dataset.setup);
+    });
+    this.el.btnJoinRoom?.addEventListener('click', () => {
+      const code = (this.el.joinRoomInput?.value || '').trim().toUpperCase();
+      if (code.length !== 4) {
+        this.el.lobbyStatus.textContent = 'Enter a 4-character room code.';
+        return;
+      }
+      const url = `${location.origin}/games/tennis?guest=1&room=${encodeURIComponent(code)}`;
+      window.location.href = url;
     });
     this.el.btnCrowdMute?.addEventListener('click', () => {
       this.crowdMuted = this.crowd.toggleMuted();
@@ -1090,9 +1245,35 @@ class TennisGame {
       this.el.readyP2.textContent = !c.p2 ? '—' : c.ready2 ? 'Ready' : '…';
       this.el.readyP2.className = c.ready2 ? 'text-emerald-400' : 'text-slate-500';
     }
-    // Start only after Ready (game never auto-starts)
-    this.el.btnAi.disabled = !(c.p1 && c.ready1);
-    this.el.btnLocal.disabled = !(c.p1 && c.ready1 && ((c.p2 && c.ready2) || !c.p2));
+    const hostControls = !this.isGuestScreen;
+    if (this.el.btnAi) this.el.btnAi.disabled = !hostControls || !(c.p1 && c.ready1);
+    if (this.el.btnLocal) {
+      this.el.btnLocal.disabled =
+        !hostControls || !(c.p1 && c.ready1 && ((c.p2 && c.ready2) || !c.p2));
+    }
+  }
+
+  _updateSetupModeUi() {
+    const mode = this.setupMode;
+    this.el.setupModePills?.querySelectorAll('[data-setup]').forEach((btn) => {
+      btn.classList.toggle('format-active', btn.dataset.setup === mode);
+    });
+    this.el.couchPanel?.classList.toggle('hidden', mode !== 'couch');
+    this.el.remoteGuestPanel?.classList.toggle('hidden', mode !== 'remote' || this.isGuestScreen);
+    if (this.isGuestScreen) {
+      this.el.remoteGuestPanel?.classList.add('hidden');
+    }
+  }
+
+  _setSetupMode(mode) {
+    this.setupMode = mode === 'remote' ? 'remote' : 'couch';
+    this._updateSetupModeUi();
+    if (this.setupMode === 'remote') {
+      this.el.lobbyStatus.textContent =
+        'Remote mode: share room code with the other computer. Split screen is off on each PC.';
+    } else if (this.room) {
+      this.el.lobbyStatus.textContent = 'Couch mode: scan both QRs. Split screen when 2 players start.';
+    }
   }
 
   _startGame(mode) {
@@ -1121,7 +1302,7 @@ class TennisGame {
     if (mode === 'ai') this.playerNames.p2 = 'AI';
     this._applyNamesToHud();
     this._hideVictory();
-    this._setSplitScreen(mode === 'local');
+    this._setSplitScreen(mode === 'local' && this.setupMode === 'couch');
     this._updateScoreHud();
     this.socket.emit('startGame', {
       mode,
@@ -2208,11 +2389,22 @@ class TennisGame {
 
     try {
       if (this.running) {
-        this._updateBall(dt);
-        this._updateRackets(dt);
-        this._updateSwingHint();
-        this._tryHit(1);
-        this._tryHit(2);
+        if (!this.isGuestScreen) {
+          this._updateBall(dt);
+          this._updateRackets(dt);
+          this._updateSwingHint();
+          this._tryHit(1);
+          this._tryHit(2);
+          this._syncFrame += 1;
+          if (this._syncFrame % 2 === 0) this._emitGameSync();
+        } else if (this.ballMesh) {
+          this.ballMesh.position.set(this.ball.pos.x, this.ball.pos.y, this.ball.pos.z);
+          this.ballMesh.visible = this.ball.alive;
+          if (this.racket1 && this.racket2) {
+            this._updatePlayerLocomotion(this.racket1, dt);
+            this._updatePlayerLocomotion(this.racket2, dt);
+          }
+        }
       } else if (this.racket1 && this.racket2 && this.ballMesh) {
         const t = performance.now() * 0.001;
         this.racket1.position.x = Math.sin(t) * 1.5;

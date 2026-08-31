@@ -30,6 +30,27 @@
             <p id="connect-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
 
             <div class="space-y-2 pt-1">
+              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Setup</p>
+              <div class="flex flex-wrap gap-2" id="setup-mode" role="group" aria-label="Setup mode">
+                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-setup="couch">Same TV · 2 phones</button>
+                <button type="button" class="btn btn-ghost text-sm format-btn" data-setup="remote">Two computers</button>
+              </div>
+            </div>
+
+            <div id="remote-guest-panel" class="hidden space-y-2 panel p-3">
+              <p class="text-xs text-slate-400">Join an existing room on this computer (P2 full screen — no split):</p>
+              <div class="flex gap-2">
+                <input id="join-room-input" maxlength="4" class="input uppercase tracking-widest w-24 text-center" placeholder="CODE" />
+                <button type="button" id="btn-join-room" class="btn btn-secondary text-sm">Join P2 screen</button>
+              </div>
+              <p class="text-xs text-slate-500">Host creates the room on the other PC and shares the 4-letter code.</p>
+            </div>
+
+            <div id="couch-panel" class="space-y-1">
+              <p class="text-xs text-slate-400">Scan with two phones — first = P1, second = P2. Split screen on Start 2 Player.</p>
+            </div>
+
+            <div class="space-y-2 pt-1">
               <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Match format</p>
               <div class="flex flex-wrap gap-2" id="format-pills" role="group" aria-label="Match format">
                 <button type="button" class="btn btn-ghost text-sm format-btn" data-format="1" data-sets-to-win="1">1 Set</button>
@@ -42,6 +63,7 @@
               <button id="btn-ai" class="btn btn-primary" disabled>Start vs AI</button>
               <button id="btn-local" class="btn btn-secondary" disabled>Start 2 Player</button>
               <button id="btn-copy-url" type="button" class="btn btn-ghost text-sm">Copy phone URL</button>
+              <button id="btn-copy-room" type="button" class="btn btn-ghost text-sm">Copy room code</button>
             </div>
             <p class="text-xs text-slate-500">
               Phones must press <strong>Ready</strong> first. Then pick format and start from this screen.
@@ -49,10 +71,20 @@
           </div>
 
           <div class="flex flex-col items-center gap-3 shrink-0">
-            <img id="qr-img" width="200" height="200" alt="Controller QR code"
-              class="bg-white rounded-xl p-2 w-[200px] h-[200px] object-contain" />
+            <div class="flex gap-3">
+              <div class="text-center">
+                <img id="qr-p1" width="140" height="140" alt="P1 QR"
+                  class="bg-white rounded-xl p-2 w-[140px] h-[140px] object-contain" />
+                <p class="text-xs text-sky-300 mt-1">Phone 1 · P1</p>
+              </div>
+              <div class="text-center">
+                <img id="qr-p2" width="140" height="140" alt="P2 QR"
+                  class="bg-white rounded-xl p-2 w-[140px] h-[140px] object-contain" />
+                <p class="text-xs text-rose-300 mt-1">Phone 2 · P2</p>
+              </div>
+            </div>
+            <img id="qr-img" width="1" height="1" alt="" class="hidden" aria-hidden="true" />
             <canvas id="qr-canvas" width="200" height="200" class="hidden" aria-hidden="true"></canvas>
-            <p class="text-xs text-slate-400 text-center max-w-[200px]">Scan with iPhone (HTTPS)</p>
           </div>
         </div>
       </div>
@@ -129,6 +161,6 @@
     }
   }
   </script>
-  <script type="module" src="/games/tennis/js/game.js?v=20260901a"></script>
+  <script type="module" src="/games/tennis/js/game.js?v=20260902b"></script>
 </body>
 </html>

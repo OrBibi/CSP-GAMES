@@ -29,6 +29,7 @@ function createRoomStore() {
         gameId,
         code: String(code).toUpperCase(),
         screenId: null,
+        guestScreenId: null,
         controllers: new Map(),
         ready: new Map(),
         names: new Map(),

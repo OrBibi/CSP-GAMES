@@ -4,25 +4,152 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>שלט פינג פונג</title>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>שלט — Ping Pong (swing like tennis)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260901a" />
+  <link rel="stylesheet" href="/css/style.css?v=20260830f" />
 </head>
 <body class="controller-body bg-slate-950 text-slate-100">
-  <div class="controller-shell space-y-4">
-    <header class="flex justify-between gap-3">
+  <div class="controller-shell">
+    <header class="flex items-start justify-between gap-3">
       <div>
-        <h1 class="text-xl font-bold">פינג פונג — שלט</h1>
+        <p class="text-xs uppercase tracking-widest font-semibold controller-accent" id="player-accent-label">Wii-style remote</p>
+        <h1 class="text-xl font-bold">הפלאפון = שלט</h1>
         <p id="slot-label" class="text-sm text-slate-400">מתחבר…</p>
       </div>
-      <span class="status-pill" id="conn-pill">offline</span>
+      <div class="text-left space-y-1">
+        <span class="status-pill" id="conn-pill">offline</span>
+        <p class="text-xs text-slate-500" id="room-label"></p>
+      </div>
     </header>
-    <p id="status-text" class="text-sm text-slate-300">הטה את הפלאפון ימין/שמאל כדי להזיז את המחבט.</p>
-    <button id="btn-motion" class="btn btn-primary w-full">הפעל תנועה</button>
-    <button id="btn-ready" class="btn btn-secondary w-full">מוכן</button>
-    <p id="ready-status" class="text-center text-sm text-slate-400"></p>
+
+    <div class="panel p-4 space-y-3">
+      <p id="status-text" class="text-sm text-slate-300 leading-relaxed">
+        חבטות ימין/שמאל בלבד (הנחתה כבויה כרגע). סיווג לפי התחלה הפוך + תנועה למסך/גב.
+      </p>
+      <ol class="text-xs text-slate-400 space-y-1 list-decimal list-inside" id="hold-rules">
+        <li><strong>ימני – ימין:</strong> התחלה הפוך → תנועה לכיוון המסך</li>
+        <li><strong>ימני – שמאל:</strong> התחלה הפוך → תנועה לכיוון הגב</li>
+        <li>כדור בצד ימין של המגרש דורש חבטת ימין (ולהפך)</li>
+      </ol>
+      <div class="space-y-2">
+        <p class="text-xs text-slate-400">השם שלך (יופיע בלוח התוצאות):</p>
+        <div class="flex gap-2">
+          <input
+            id="player-name"
+            type="text"
+            maxlength="16"
+            autocomplete="nickname"
+            placeholder="הקלד שם…"
+            class="name-input flex-1"
+          />
+          <button type="button" id="btn-save-name" class="btn btn-ghost shrink-0">שמור</button>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="btn-motion" class="btn btn-primary flex-1 min-w-[10rem] text-base py-3">
+          הפעל שלט תנועה
+        </button>
+        <button id="btn-calibrate" class="btn btn-ghost flex-1 min-w-[8rem]" disabled>כיול</button>
+      </div>
+      <button type="button" id="btn-ready" class="btn btn-secondary w-full py-3 text-base" disabled>
+        מוכן למשחק
+      </button>
+      <p id="ready-status" class="text-xs text-center text-slate-400">התחבר → הפעל תנועה → לחץ מוכן. המשחק לא מתחיל אוטומטית.</p>
+      <div class="space-y-2">
+        <p class="text-xs text-slate-400">יד דומיננטית (משפיע על ימין/שמאל):</p>
+        <div class="flex gap-2">
+          <button type="button" id="btn-hand-right" class="btn btn-ghost flex-1 hand-btn">ימני</button>
+          <button type="button" id="btn-hand-left" class="btn btn-ghost flex-1 hand-btn">שמאלי</button>
+        </div>
+      </div>
+      <button type="button" id="btn-practice" class="btn btn-secondary w-full py-3 text-base" disabled>
+        מצב אימון חבטות (בלי כדור)
+      </button>
+      <p id="secure-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
+    </div>
+
+    <div id="practice-panel" class="panel p-4 space-y-3 hidden">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-sm font-semibold text-amber-300">אימון חבטות</h2>
+        <button type="button" id="btn-practice-exit" class="btn btn-ghost text-xs py-1 px-2">יציאה</button>
+      </div>
+      <p class="text-xs text-slate-400 leading-relaxed">
+        אין כדור — בודקים זיהוי צד, כיוון נחיתה (aim), תנועה ועוצמה.
+      </p>
+      <div id="practice-result" class="practice-result practice-idle">
+        <div id="practice-side-label" class="practice-side-label">חכה לחבטה…</div>
+        <div id="practice-detail-lines" class="practice-detail-lines hidden"></div>
+        <div id="practice-aim-block" class="hidden w-full space-y-1">
+          <div class="practice-aim-row">
+            <span>כיוון נחיתה (aim)</span>
+            <span id="practice-aim-value" class="practice-aim-value">0.00</span>
+          </div>
+          <div class="aim-bar" aria-hidden="true">
+            <div id="practice-aim-marker" class="aim-bar-marker"></div>
+          </div>
+          <div class="aim-bar-labels">
+            <span>צד נגדי (−1)</span>
+            <span>אמצע (0)</span>
+            <span>אותו צד (+1)</span>
+          </div>
+        </div>
+      </div>
+      <p id="practice-hint" class="text-xs text-center text-slate-500">
+        aim: ימני — ימין+רצפה / שמאל+שמיים = צד נגדי · שמאלי — הפוך
+      </p>
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="rounded-lg bg-slate-900/80 py-2">
+          <div class="text-sky-300 font-bold text-lg" id="prac-count-right">0</div>
+          <div class="text-slate-500">ימין</div>
+        </div>
+        <div class="rounded-lg bg-slate-900/80 py-2">
+          <div class="text-orange-300 font-bold text-lg" id="prac-count-left">0</div>
+          <div class="text-slate-500">שמאל</div>
+        </div>
+        <div class="rounded-lg bg-slate-900/80 py-2">
+          <div class="practice-count-same font-bold text-lg" id="prac-count-same">0</div>
+          <div class="text-slate-500">אותו צד</div>
+        </div>
+        <div class="rounded-lg bg-slate-900/80 py-2">
+          <div class="practice-count-cross font-bold text-lg" id="prac-count-cross">0</div>
+          <div class="text-slate-500">צד נגדי</div>
+        </div>
+        <div class="rounded-lg bg-slate-900/80 py-2 col-span-2">
+          <div class="practice-count-center font-bold text-lg" id="prac-count-center">0</div>
+          <div class="text-slate-500">אמצע</div>
+        </div>
+      </div>
+      <button type="button" id="btn-practice-reset" class="btn btn-ghost w-full text-sm">אפס מונים</button>
+    </div>
+
+    <div class="wii-stage" aria-hidden="true">
+      <div class="wii-remote" id="wii-remote">
+        <div class="wii-face">
+          <div class="wii-led" id="wii-led"></div>
+          <div class="wii-label">P<span id="wii-slot">?</span></div>
+        </div>
+      </div>
+      <p class="text-center text-xs text-slate-400 mt-2" id="motion-readout">ממתין לחיישנים…</p>
+    </div>
+
+    <div class="flex justify-between text-sm px-1 gap-2">
+      <span>ניקוד <strong id="hud-score">0 | 0 | 0</strong></span>
+      <span id="hud-msg" class="text-slate-400 text-left">ממתין</span>
+    </div>
+
+    <details class="panel p-3 text-sm text-slate-400">
+      <summary class="cursor-pointer text-slate-300">גיבוי מגע (אם החיישנים לא עובדים)</summary>
+      <div id="touch-pad" class="touch-pad mt-3" role="application" aria-label="Touch control pad">
+        <div>
+          <p class="font-semibold text-slate-200">Touch pad</p>
+          <p class="text-xs mt-1">החלק ימין↔שמאל או מלמעלה למטה (הנחתה)</p>
+        </div>
+      </div>
+    </details>
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/games/pingpong/js/controller.js?v=20260901a"></script>
+  <script src="/games/tennis/js/controller.js?v=20260902b"></script>
 </body>
 </html>

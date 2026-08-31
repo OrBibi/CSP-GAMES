@@ -16,13 +16,53 @@ function attachSocketHandlers(io, store) {
       const channel = store.roomKey(gameId, roomCode);
 
       if (role === 'screen') {
+        const isGuest = !!payload.guestScreen;
         if (!roomCode) roomCode = store.createRoomCode(gameId);
         const room = store.getOrCreateRoom(gameId, roomCode);
         const joinChannel = store.roomKey(gameId, roomCode);
 
         if (room.screenId && room.screenId !== socket.id) {
+          if (isGuest && !room.guestScreenId) {
+            room.guestScreenId = socket.id;
+            socket.data.role = 'screen';
+            socket.data.room = roomCode;
+            socket.data.gameId = gameId;
+            socket.data.isGuestScreen = true;
+            socket.join(joinChannel);
+
+            const urls = resolveControllerUrls(roomCode, {
+              req: socket.request,
+              lanIp: io._cspLanIp,
+              port: io._cspHttpPort,
+              httpsPort: io._cspHttpsPort,
+              gameId,
+            });
+
+            if (typeof ack === 'function') {
+              ack({
+                ok: true,
+                room: roomCode,
+                game: gameId,
+                isGuestScreen: true,
+                viewSlot: 2,
+                controllerUrl: urls.controllerUrl,
+                controllerUrlHttps: urls.controllerUrlHttps,
+                controllers: store.roomSnapshot(room),
+                gameTitle: game.title,
+              });
+            }
+            io.to(room.screenId).emit('guestScreenJoined', { room: roomCode });
+            return;
+          }
           if (typeof ack === 'function') {
             ack({ ok: false, error: 'Room already has a game screen.' });
+          }
+          return;
+        }
+
+        if (isGuest) {
+          if (typeof ack === 'function') {
+            ack({ ok: false, error: 'Open the host screen first, then join with the room code.' });
           }
           return;
         }
@@ -31,6 +71,7 @@ function attachSocketHandlers(io, store) {
         socket.data.role = 'screen';
         socket.data.room = roomCode;
         socket.data.gameId = gameId;
+        socket.data.isGuestScreen = false;
         socket.join(joinChannel);
 
         const urls = resolveControllerUrls(roomCode, {
@@ -46,6 +87,7 @@ function attachSocketHandlers(io, store) {
             ok: true,
             room: roomCode,
             game: gameId,
+            isGuestScreen: false,
             controllerUrl: urls.controllerUrl,
             controllerUrlHttps: urls.controllerUrlHttps,
             lanIp: io._cspLanIp,
@@ -157,7 +199,7 @@ function attachSocketHandlers(io, store) {
         side,
         aim: Math.max(-1, Math.min(1, Number(data?.aim) || 0)),
         powerLevel: Math.max(1, Math.min(5, Math.round(Number(data?.powerLevel) || 0) || 0)),
-        ts: Date.now(),
+        ts: Number(data?.ts) || Date.now(),
       });
     });
 
@@ -259,6 +301,14 @@ function attachSocketHandlers(io, store) {
       io.to(store.roomKey(socket.data.gameId, socket.data.room)).emit('scoreUpdate', data);
     });
 
+    socket.on('gameSync', (data) => {
+      const room = store.getRoom(socket.data.gameId, socket.data.room);
+      if (!room || socket.data.role !== 'screen' || socket.data.isGuestScreen) return;
+      if (room.guestScreenId) {
+        io.to(room.guestScreenId).emit('gameSync', data);
+      }
+    });
+
     socket.on('disconnect', () => {
       const code = socket.data.room;
       const gameId = socket.data.gameId;
@@ -272,6 +322,14 @@ function attachSocketHandlers(io, store) {
         room.mode = null;
         io.to(channel).emit('screenDisconnected');
         store.freeRoomIfEmpty(gameId, code);
+        return;
+      }
+
+      if (socket.data.role === 'screen' && room.guestScreenId === socket.id) {
+        room.guestScreenId = null;
+        if (room.screenId) {
+          io.to(room.screenId).emit('guestScreenLeft');
+        }
         return;
       }
 
