@@ -1,0 +1,28 @@
+{
+  "name": "csp-games",
+  "version": "0.3.0",
+  "description": "CSP-GAMES — phone motion controllers + desktop game screens (tennis, ping pong)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node start-with-tunnel.js",
+    "start:phone": "node start-with-tunnel.js",
+    "test": "node --test --test-concurrency=1 test/**/*.test.js",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-game.ps1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "localtunnel": "^2.0.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "selfsigned": "^5.5.0",
+    "socket.io": "^4.8.1",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

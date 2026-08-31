@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phone Tennis — Game Screen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20260830c" />
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="game-root">
+    <div id="lobby" class="absolute inset-0 z-20 flex items-center justify-center p-4">
+      <div class="panel w-full max-w-3xl p-6 md:p-8">
+        <div class="flex flex-col md:flex-row gap-8">
+          <div class="flex-1 space-y-4">
+            <p class="text-sm uppercase tracking-widest text-emerald-400 font-semibold">LAN Tennis</p>
+            <h1 class="text-3xl md:text-4xl font-bold leading-tight">Phone as racket.<br />Desktop as court.</h1>
+            <p class="text-slate-300 text-sm md:text-base">
+              Desktop: keep this page open. <strong>iPhone:</strong> scan the HTTPS QR (required for motion sensors).
+            </p>
+
+            <div class="flex items-center gap-3 text-sm flex-wrap">
+              <span class="status-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
+              <span class="status-pill"><span class="dot" id="dot-p1"></span> P1 <span id="ready-p1" class="text-slate-500">…</span></span>
+              <span class="status-pill"><span class="dot" id="dot-p2"></span> P2 <span id="ready-p2" class="text-slate-500">…</span></span>
+            </div>
+
+            <p id="lobby-status" class="text-sm text-slate-400">Connecting to server…</p>
+            <p id="controller-url" class="text-sm break-all text-sky-300 font-mono"></p>
+            <p id="connect-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
+
+            <div class="space-y-2 pt-1">
+              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Match format</p>
+              <div class="flex flex-wrap gap-2" id="format-pills" role="group" aria-label="Match format">
+                <button type="button" class="btn btn-ghost text-sm format-btn" data-format="1" data-sets-to-win="1">1 Set</button>
+                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-format="3" data-sets-to-win="2">Best of 3</button>
+                <button type="button" class="btn btn-ghost text-sm format-btn" data-format="5" data-sets-to-win="3">Best of 5</button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 pt-2">
+              <button id="btn-ai" class="btn btn-primary" disabled>Start vs AI</button>
+              <button id="btn-local" class="btn btn-secondary" disabled>Start 2 Player</button>
+              <button id="btn-copy-url" type="button" class="btn btn-ghost text-sm">Copy phone URL</button>
+            </div>
+            <p class="text-xs text-slate-500">
+              Phones must press <strong>Ready</strong> first. Then pick format and start from this screen.
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center gap-3 shrink-0">
+            <img id="qr-img" width="200" height="200" alt="Controller QR code"
+              class="bg-white rounded-xl p-2 w-[200px] h-[200px] object-contain" />
+            <canvas id="qr-canvas" width="200" height="200" class="hidden" aria-hidden="true"></canvas>
+            <p class="text-xs text-slate-400 text-center max-w-[200px]">Scan with iPhone (HTTPS)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="hud-overlay hidden z-10">
+      <div class="split-divider" id="split-divider"></div>
+      <div class="split-label left hidden" id="split-label-p1">P1</div>
+      <div class="split-label right hidden" id="split-label-p2">P2</div>
+      <div class="flex justify-between items-start">
+        <button id="btn-back" class="btn btn-ghost interactive text-sm py-2 px-3">Lobby</button>
+        <div class="scoreboard tennis-board" id="tennis-board" aria-label="Match score">
+          <div class="tb-title">
+            <span id="match-label">Best of 7</span>
+          </div>
+          <table class="tb-table">
+            <thead>
+              <tr>
+                <th class="tb-col-player"></th>
+                <th>Sets</th>
+                <th>Games</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="row-p1">
+                <td class="tb-col-player">
+                  <span class="tb-serve" id="serve-p1" aria-hidden="true"></span>
+                  <span class="tb-name" id="name-p1">P1</span>
+                </td>
+                <td id="sets-p1">0</td>
+                <td id="games-p1">0</td>
+                <td class="tb-points" id="points-p1">0</td>
+              </tr>
+              <tr id="row-p2">
+                <td class="tb-col-player">
+                  <span class="tb-serve" id="serve-p2" aria-hidden="true"></span>
+                  <span class="tb-name" id="name-p2">P2</span>
+                </td>
+                <td id="sets-p2">0</td>
+                <td id="games-p2">0</td>
+                <td class="tb-points" id="points-p2">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button id="btn-crowd-mute" type="button" class="btn btn-ghost interactive text-sm py-2 px-3" title="Toggle crowd sound" aria-pressed="false">🔊 Crowd</button>
+      </div>
+      <div class="text-center">
+        <p id="swing-badge" class="swing-badge hidden">—</p>
+        <p id="message" class="text-lg md:text-2xl font-semibold drop-shadow-lg">&nbsp;</p>
+        <p class="text-xs text-slate-400 mt-1">15 · 30 · 40 · AD · set at 6 (TB at 6–6)</p>
+      </div>
+    </div>
+
+    <div id="victory-overlay" class="victory-overlay hidden" aria-live="polite">
+      <canvas id="fireworks-canvas" class="fireworks-canvas"></canvas>
+      <div class="victory-card">
+        <p class="victory-eyebrow">Match complete</p>
+        <h2 id="victory-title" class="victory-title">Winner!</h2>
+        <p id="victory-sub" class="victory-sub"></p>
+        <button type="button" id="btn-victory-lobby" class="btn btn-primary interactive mt-4">Back to Lobby</button>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="/games/tennis/js/game.js?v=20260901a"></script>
+</body>
+</html>

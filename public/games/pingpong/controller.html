@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>שלט פינג פונג</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20260901a" />
+</head>
+<body class="controller-body bg-slate-950 text-slate-100">
+  <div class="controller-shell space-y-4">
+    <header class="flex justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-bold">פינג פונג — שלט</h1>
+        <p id="slot-label" class="text-sm text-slate-400">מתחבר…</p>
+      </div>
+      <span class="status-pill" id="conn-pill">offline</span>
+    </header>
+    <p id="status-text" class="text-sm text-slate-300">הטה את הפלאפון ימין/שמאל כדי להזיז את המחבט.</p>
+    <button id="btn-motion" class="btn btn-primary w-full">הפעל תנועה</button>
+    <button id="btn-ready" class="btn btn-secondary w-full">מוכן</button>
+    <p id="ready-status" class="text-center text-sm text-slate-400"></p>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/games/pingpong/js/controller.js?v=20260901a"></script>
+</body>
+</html>

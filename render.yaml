@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: csp-games
+    runtime: node
+    buildCommand: npm ci
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUBLIC_URL
+        sync: false
+    healthCheckPath: /health

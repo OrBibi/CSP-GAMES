@@ -1,0 +1,21 @@
+#pp-root canvas {
+  display: block;
+  background: radial-gradient(ellipse at center, #1e3a5f 0%, #0f172a 70%);
+}
+
+.paddle {
+  fill: #38bdf8;
+}
+
+.paddle.p2 {
+  fill: #f87171;
+}
+
+.ball {
+  fill: #f8fafc;
+}
+
+.table-line {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 2;
+}

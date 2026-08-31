@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ping Pong — Game Screen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20260901a" />
+  <link rel="stylesheet" href="/games/pingpong/css/pingpong.css?v=20260901a" />
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="pp-root" class="relative min-h-screen flex flex-col">
+    <div id="lobby" class="absolute inset-0 z-20 flex items-center justify-center p-4">
+      <div class="panel w-full max-w-3xl p-6 md:p-8">
+        <div class="flex flex-col md:flex-row gap-8">
+          <div class="flex-1 space-y-4">
+            <p class="text-sm uppercase tracking-widest text-sky-400 font-semibold">Ping Pong</p>
+            <h1 class="text-3xl font-bold">Phone paddle.<br />Desktop table.</h1>
+            <div class="flex items-center gap-3 text-sm flex-wrap">
+              <span class="status-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
+              <span class="status-pill"><span class="dot" id="dot-p1"></span> P1</span>
+              <span class="status-pill"><span class="dot" id="dot-p2"></span> P2</span>
+            </div>
+            <p id="lobby-status" class="text-sm text-slate-400">Connecting…</p>
+            <p id="controller-url" class="text-sm break-all text-sky-300 font-mono"></p>
+            <button id="btn-start" class="btn btn-primary" disabled>Start match</button>
+          </div>
+          <div class="flex flex-col items-center gap-3 shrink-0">
+            <img id="qr-img" width="200" height="200" alt="Controller QR"
+              class="bg-white rounded-xl p-2 w-[200px] h-[200px] object-contain" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden flex justify-between items-center px-4 py-2 text-lg font-mono">
+      <span id="score-p1">0</span>
+      <span class="text-slate-400 text-sm" id="match-status">Playing</span>
+      <span id="score-p2">0</span>
+    </div>
+    <canvas id="game-canvas" class="flex-1 w-full"></canvas>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/games/pingpong/js/game.js?v=20260901a"></script>
+</body>
+</html>

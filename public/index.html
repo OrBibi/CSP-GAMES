@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSP-GAMES — Phone + Desktop Multiplayer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20260901a" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <main class="max-w-4xl mx-auto px-4 py-10 space-y-8">
+    <header class="space-y-2">
+      <p class="text-sm uppercase tracking-widest text-emerald-400 font-semibold">CSP-GAMES</p>
+      <h1 class="text-4xl font-bold">Phone as controller.<br />Desktop as screen.</h1>
+      <p class="text-slate-300 max-w-2xl">
+        Pick a game, open the desktop lobby, scan the QR on your phone, and play over Wi‑Fi locally or online on Render.
+      </p>
+    </header>
+
+    <section class="grid gap-4 sm:grid-cols-2" id="game-cards">
+      <a href="/games/tennis" class="panel p-6 block hover:border-emerald-500/50 transition-colors no-underline text-inherit">
+        <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-2">Available</p>
+        <h2 class="text-2xl font-bold mb-2">Phone Tennis</h2>
+        <p class="text-slate-400 text-sm">3D court, motion racket swings, AI or 2-player local split.</p>
+      </a>
+
+      <a href="/games/pingpong" class="panel p-6 block hover:border-sky-500/50 transition-colors no-underline text-inherit">
+        <p class="text-xs uppercase tracking-widest text-sky-400 font-semibold mb-2">Available</p>
+        <h2 class="text-2xl font-bold mb-2">Ping Pong</h2>
+        <p class="text-slate-400 text-sm">Tilt your phone to move the paddle. First to 11 wins.</p>
+      </a>
+    </section>
+
+    <section class="panel p-5 text-sm text-slate-400 space-y-2">
+      <p><strong class="text-slate-200">Local dev:</strong> run <code class="text-sky-300">npm run dev</code> or <code class="text-sky-300">start.bat</code> — uses LAN + optional Cloudflare tunnel for iPhone HTTPS.</p>
+      <p><strong class="text-slate-200">Cloud:</strong> deploys from <code class="text-sky-300">main</code> on Render with a single HTTPS URL — no tunnel needed.</p>
+    </section>
+  </main>
+</body>
+</html>
