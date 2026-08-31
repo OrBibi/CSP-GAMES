@@ -55,14 +55,18 @@ function attachSocketHandlers(io, store) {
             return;
           }
           if (typeof ack === 'function') {
-            ack({ ok: false, error: 'Room already has a game screen.' });
+            ack({ ok: false, code: 'ROOM_HAS_SCREEN', error: 'Room already has a game screen.' });
           }
           return;
         }
 
         if (isGuest) {
           if (typeof ack === 'function') {
-            ack({ ok: false, error: 'Open the host screen first, then join with the room code.' });
+            ack({
+              ok: false,
+              code: 'HOST_FIRST',
+              error: 'Open the host screen first, then join with the room code.',
+            });
           }
           return;
         }
@@ -107,7 +111,11 @@ function attachSocketHandlers(io, store) {
       const existing = store.getRoom(gameId, roomCode);
       if (!roomCode || !existing) {
         if (typeof ack === 'function') {
-          ack({ ok: false, error: 'Room not found. Open the desktop lobby first.' });
+          ack({
+            ok: false,
+            code: 'ROOM_NOT_FOUND',
+            error: 'Room not found. Open the desktop lobby first.',
+          });
         }
         return;
       }
@@ -115,7 +123,11 @@ function attachSocketHandlers(io, store) {
       const room = existing;
       if (!room.screenId) {
         if (typeof ack === 'function') {
-          ack({ ok: false, error: 'Game screen is not connected yet.' });
+          ack({
+            ok: false,
+            code: 'SCREEN_NOT_CONNECTED',
+            error: 'Game screen is not connected yet.',
+          });
         }
         return;
       }
@@ -126,7 +138,11 @@ function attachSocketHandlers(io, store) {
         else if (!room.controllers.has(2) && store.maxPlayersFor(gameId) >= 2) slot = 2;
         else {
           if (typeof ack === 'function') {
-            ack({ ok: false, error: 'Room already has two controllers.' });
+            ack({
+              ok: false,
+              code: 'ROOM_FULL',
+              error: 'Room already has two controllers.',
+            });
           }
           return;
         }
@@ -253,11 +269,17 @@ function attachSocketHandlers(io, store) {
       if (!room || socket.data.role !== 'screen') return;
       const mode = data?.mode === 'local' ? 'local' : 'ai';
       if (!room.controllers.has(1) || !room.ready.get(1)) {
-        socket.emit('startDenied', { error: 'P1 must be connected and Ready.' });
+        socket.emit('startDenied', {
+          code: 'NEED_P1_READY',
+          error: 'P1 must be connected and Ready.',
+        });
         return;
       }
       if (mode === 'local' && room.controllers.has(2) && !room.ready.get(2)) {
-        socket.emit('startDenied', { error: 'P2 must press Ready.' });
+        socket.emit('startDenied', {
+          code: 'NEED_P2_READY',
+          error: 'P2 must press Ready.',
+        });
         return;
       }
       room.mode = mode;

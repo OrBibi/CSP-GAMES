@@ -5,6 +5,8 @@ import * as THREE from '/vendor/three/build/three.module.js';
 import { CrowdAudio } from './crowd-audio.js';
 
 const GAME_ID = 'tennis';
+const i18n = window.CSPI18n;
+const tr = (key, tokens) => i18n.t(key, tokens);
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const GUEST_SCREEN = PAGE_PARAMS.get('guest') === '1';
 const JOIN_ROOM_PARAM = (PAGE_PARAMS.get('room') || '').trim().toUpperCase();
@@ -56,9 +58,9 @@ function powerLevelFromIntensity(intensity) {
 /** +1 same side (down the line), −1 cross-court, 0 center. */
 function aimPlacementLabel(aim) {
   const v = Number(aim) || 0;
-  if (v > 0.2) return 'same side';
-  if (v < -0.2) return 'cross';
-  return 'center';
+  if (v > 0.2) return tr('tennis.place.sameSide');
+  if (v < -0.2) return tr('tennis.place.cross');
+  return tr('tennis.place.center');
 }
 
 function amplifyAimForCourt(aim) {
@@ -190,9 +192,8 @@ class TennisGame {
     } catch (err) {
       console.error('3D init failed', err);
       this.sceneReady = false;
-      const msg = 'This device could not load 3D graphics. Try another browser or computer.';
-      if (this.el?.lobbyStatus) this.el.lobbyStatus.textContent = msg;
-      if (this.el?.message) this.el.message.textContent = msg;
+      this._setStatus('status.noGraphics');
+      if (this.el?.message) this.el.message.textContent = tr('status.noGraphics');
     }
   }
 
@@ -212,8 +213,37 @@ class TennisGame {
 
   _formatLabel() {
     const bestOf = this.matchFormat?.bestOf || 3;
-    if (bestOf === 1) return '1 Set';
-    return `Best of ${bestOf}`;
+    if (bestOf === 1) return tr('tennis.format1Set');
+    return tr('tennis.formatBestOf', { n: bestOf });
+  }
+
+  _updateMatchLabel() {
+    if (!this.el?.matchLabel || !this.mode) return;
+    this.el.matchLabel.textContent = tr(
+      this.mode === 'ai' ? 'tennis.labelVsAi' : 'tennis.labelLocal',
+      { format: this._formatLabel() }
+    );
+  }
+
+  /** Display name for a slot, falling back to the localized "Player N". */
+  _playerName(side) {
+    if (side === 2 && this.mode === 'ai') return tr('common.computer');
+    const stored = side === 1 ? this.playerNames.p1 : this.playerNames.p2;
+    if (stored && stored !== 'P1' && stored !== 'P2' && stored !== 'AI') return stored;
+    return tr(side === 1 ? 'common.player1' : 'common.player2');
+  }
+
+  /** Set the lobby status from a key so it can be re-rendered on language change. */
+  _setStatus(key, tokens) {
+    this._statusKey = key;
+    this._statusTokens = tokens || null;
+    if (this.el?.lobbyStatus) this.el.lobbyStatus.textContent = tr(key, tokens);
+  }
+
+  _setStatusRaw(text) {
+    this._statusKey = null;
+    this._statusTokens = null;
+    if (this.el?.lobbyStatus) this.el.lobbyStatus.textContent = text;
   }
 
   _ensureGraphics() {
@@ -232,6 +262,8 @@ class TennisGame {
       qrImg: document.getElementById('qr-img'),
       dotP1: document.getElementById('dot-p1'),
       dotP2: document.getElementById('dot-p2'),
+      pillP1: document.getElementById('pill-p1'),
+      pillP2: document.getElementById('pill-p2'),
       btnAi: document.getElementById('btn-ai'),
       btnLocal: document.getElementById('btn-local'),
       btnBack: document.getElementById('btn-back'),
@@ -881,15 +913,17 @@ class TennisGame {
 
   _showPhoneUrl(url) {
     this.controllerUrl = url;
-    this.el.controllerUrl.textContent = url;
-    drawQr(this.el.qr, url, 'qr-p1');
-    drawQr(this.el.qr, url, 'qr-p2');
+    // Carry the screen's language so the phone opens the controller in it too.
+    const linked = i18n.withLang(url);
+    this.el.controllerUrl.textContent = linked;
+    drawQr(this.el.qr, linked, 'qr-p1');
+    drawQr(this.el.qr, linked, 'qr-p2');
   }
 
   async _applyPhoneUrl(room, lanIp, serverUrls) {
     if (!this._isLocalDev() && serverUrls?.controllerUrlHttps) {
       this._showPhoneUrl(serverUrls.controllerUrlHttps);
-      this.el.lobbyStatus.textContent = 'Scan the QR code with your phone.';
+      this._setStatus('status.scanQr');
       return;
     }
 
@@ -897,28 +931,27 @@ class TennisGame {
     this._showPhoneUrl(
       base + '/controller?game=' + GAME_ID + '&room=' + encodeURIComponent(room)
     );
-    this.el.lobbyStatus.textContent = 'Scan the QR code with your phone.';
+    this._setStatus('status.scanQr');
   }
 
   _joinAsGuestScreen(code) {
     if (this._joining) return;
     this._joining = true;
-    this.el.lobbyStatus.textContent = 'Joining the room…';
+    this._setStatus('status.joiningRoom');
     this.socket.emit(
       'join',
       { role: 'screen', game: GAME_ID, room: code, guestScreen: true },
       async (res) => {
         this._joining = false;
         if (!res?.ok) {
-          this.el.lobbyStatus.textContent = res?.error || 'Could not join room.';
+          this._setStatusRaw(i18n.tError(res, 'status.joinFailed'));
           return;
         }
         this.room = res.room;
         this.isGuestScreen = true;
         this.controllers = res.controllers || this.controllers;
         this.el.roomCode.textContent = this.room;
-        this.el.lobbyStatus.textContent =
-          'Joined as Player 2 — scan the QR code below with your phone. Player 1 starts the match.';
+        this._setStatus('status.joinedAsP2');
         this.controllerUrl = this._buildControllerUrl(res.room, res.controllerUrlHttps || res.controllerUrl, res.lanIp);
         await this._applyPhoneUrl(this.room, res.lanIp, res);
         this._refreshLobby();
@@ -930,11 +963,11 @@ class TennisGame {
   _joinAsScreen() {
     if (this._joining) return;
     this._joining = true;
-    this.el.lobbyStatus.textContent = 'Setting up…';
+    this._setStatus('status.settingUp');
     this.socket.emit('join', { role: 'screen', game: GAME_ID }, async (res) => {
       this._joining = false;
       if (!res || !res.ok) {
-        this.el.lobbyStatus.textContent = (res && res.error) || 'Could not start a game. Please reload.';
+        this._setStatusRaw(i18n.tError(res, 'status.createFailed'));
         return;
       }
       this.room = res.room;
@@ -960,7 +993,7 @@ class TennisGame {
 
   _bindSocket() {
     this.socket.on('connect', () => {
-      this.el.lobbyStatus.textContent = this.room ? 'Reconnected.' : 'Setting up…';
+      this._setStatus(this.room ? 'status.reconnected' : 'status.settingUp');
       if (!this.room) {
         if (GUEST_SCREEN && JOIN_ROOM_PARAM) this._joinAsGuestScreen(JOIN_ROOM_PARAM);
         else this._joinAsScreen();
@@ -984,11 +1017,11 @@ class TennisGame {
     });
 
     this.socket.on('connect_error', () => {
-      this.el.lobbyStatus.textContent = 'Connection problem — check your internet and reload.';
+      this._setStatus('status.connectionProblem');
     });
 
     this.socket.on('disconnect', () => {
-      this.el.lobbyStatus.textContent = 'Connection lost — reconnecting…';
+      this._setStatus('status.connectionLost');
     });
 
     this.socket.on('roomState', (state) => {
@@ -1000,7 +1033,7 @@ class TennisGame {
     this.socket.on('controllerJoined', (data) => {
       this.controllers = data.controllers;
       this._syncNamesFromControllers(data.controllers);
-      this.el.lobbyStatus.textContent = `Player ${data.slot} joined — tap Ready on the phone.`;
+      this._setStatus('status.playerJoined', { player: this._playerName(data.slot) });
       this._refreshLobby();
     });
 
@@ -1009,9 +1042,9 @@ class TennisGame {
         this.controllers = data.controllers;
         this._syncNamesFromControllers(data.controllers);
       }
-      this.el.lobbyStatus.textContent = data.ready
-        ? `Player ${data.slot} is ready.`
-        : `Player ${data.slot} is not ready.`;
+      this._setStatus(data.ready ? 'status.playerIsReady' : 'status.playerNotReady', {
+        player: this._playerName(data.slot),
+      });
       this._refreshLobby();
     });
 
@@ -1028,16 +1061,16 @@ class TennisGame {
     });
 
     this.socket.on('startDenied', (data) => {
-      this.el.lobbyStatus.textContent = data?.error || 'Cannot start yet.';
+      this._setStatusRaw(i18n.tError(data, 'status.cannotStart'));
     });
 
     this.socket.on('controllerLeft', (data) => {
       this.controllers = data.controllers;
       this._syncNamesFromControllers(data.controllers);
-      this.el.lobbyStatus.textContent = `Player ${data.slot} left.`;
+      this._setStatus('status.playerLeft', { player: this._playerName(data.slot) });
       this._refreshLobby();
       if (this.running && data.slot === 1) {
-        this._showMessage('Player 1 left — back to the lobby');
+        this._message('tennis.msg.p1Left', { player: this._playerName(1) });
         setTimeout(() => this._returnToLobby(), 1200);
       }
     });
@@ -1088,18 +1121,35 @@ class TennisGame {
       this._syncNamesFromControllers(this.controllers);
       this._applyNamesToHud();
       this._updateScoreHud();
-      this._showMessage('Match started — good luck!');
+      this._message('tennis.msg.matchStarted');
       this.crowd.unlock();
       this.crowd.startAmbience();
     });
 
     this.socket.on('calibrate', (data) => {
       if (this.inputs[data.slot]) this.inputs[data.slot].x = 0;
-      this._showMessage(`P${data.slot} calibrated`);
+      this._message('tennis.msg.calibrated', { player: this._playerName(data.slot) });
     });
   }
 
+  /** Re-render everything this class renders imperatively. */
+  _relocalize() {
+    if (this._statusKey) this._setStatus(this._statusKey, this._statusTokens);
+    this._refreshLobby();
+    this._applyNamesToHud();
+    this._updateMatchLabel();
+    this._updateCrowdMuteButton();
+    this._renderScoreboard();
+    if (this._messageKey && this.messageTimer > 0 && this.el.message) {
+      this.el.message.textContent = tr(this._messageKey, this._messageTokens);
+    }
+    if (this._winnerSlot) this._renderVictoryText(this._winnerSlot);
+    // The QR link carries the language, so it has to be redrawn as well.
+    if (this.controllerUrl) this._showPhoneUrl(this.controllerUrl);
+  }
+
   _bindUi() {
+    window.addEventListener('csp:langchange', () => this._relocalize());
     this.el.btnAi.addEventListener('click', () => this._startGame('ai'));
     this.el.btnLocal.addEventListener('click', () => this._startGame('local'));
     this.el.btnBack.addEventListener('click', () => this._returnToLobby());
@@ -1118,9 +1168,9 @@ class TennisGame {
       if (!this.room) return;
       try {
         await navigator.clipboard.writeText(this.room);
-        this.el.lobbyStatus.textContent = `Room code ${this.room} copied.`;
+        this._setStatus('status.roomCopied', { code: this.room });
       } catch {
-        this.el.lobbyStatus.textContent = `Room code: ${this.room}`;
+        this._setStatus('status.roomCode', { code: this.room });
       }
     });
     this.el.setupModePills?.addEventListener('click', (e) => {
@@ -1131,7 +1181,7 @@ class TennisGame {
     this.el.btnJoinRoom?.addEventListener('click', () => {
       const code = (this.el.joinRoomInput?.value || '').trim().toUpperCase();
       if (code.length !== 4) {
-        this.el.lobbyStatus.textContent = 'Room codes are 4 characters.';
+        this._setStatus('status.codeLength');
         return;
       }
       const url = `${location.origin}/games/tennis?guest=1&room=${encodeURIComponent(code)}`;
@@ -1148,7 +1198,11 @@ class TennisGame {
   _updateCrowdMuteButton() {
     const btn = this.el.btnCrowdMute;
     if (!btn) return;
-    btn.textContent = this.crowdMuted ? '🔇 Crowd' : '🔊 Crowd';
+    btn.textContent = this.crowdMuted ? '🔇' : '🔊';
+    btn.setAttribute(
+      'aria-label',
+      tr(this.crowdMuted ? 'tennis.crowdOff' : 'tennis.crowdOn')
+    );
     btn.setAttribute('aria-pressed', this.crowdMuted ? 'true' : 'false');
     btn.classList.toggle('crowd-muted', this.crowdMuted);
   }
@@ -1162,21 +1216,16 @@ class TennisGame {
   }
 
   _applyNamesToHud() {
-    if (this.el.nameP1) this.el.nameP1.textContent = this.playerNames.p1 || 'P1';
-    if (this.el.nameP2) {
-      this.el.nameP2.textContent =
-        this.mode === 'ai' ? 'AI' : this.playerNames.p2 || 'P2';
-    }
-    if (this.el.splitLabelP1) this.el.splitLabelP1.textContent = this.playerNames.p1 || 'P1';
-    if (this.el.splitLabelP2) {
-      this.el.splitLabelP2.textContent =
-        this.mode === 'ai' ? 'AI' : this.playerNames.p2 || 'P2';
-    }
+    const p1 = this._playerName(1);
+    const p2 = this._playerName(2);
+    if (this.el.nameP1) this.el.nameP1.textContent = p1;
+    if (this.el.nameP2) this.el.nameP2.textContent = p2;
+    if (this.el.splitLabelP1) this.el.splitLabelP1.textContent = p1;
+    if (this.el.splitLabelP2) this.el.splitLabelP2.textContent = p2;
   }
 
   _displayName(slot) {
-    if (slot === 2 && this.mode === 'ai') return 'AI';
-    return slot === 1 ? this.playerNames.p1 || 'P1' : this.playerNames.p2 || 'P2';
+    return this._playerName(slot);
   }
 
   /** Keyboard drives P1 when alone, or P2 when a phone is already P1 (local 2P). */
@@ -1214,13 +1263,17 @@ class TennisGame {
     this.el.dotP1.classList.toggle('on', !!c.p1);
     this.el.dotP2.classList.toggle('on', !!c.p2);
     if (this.el.readyP1) {
-      this.el.readyP1.textContent = !c.p1 ? '—' : c.ready1 ? 'Ready' : '…';
-      this.el.readyP1.className = c.ready1 ? 'text-emerald-400' : 'text-slate-500';
+      this.el.readyP1.textContent = !c.p1 ? '—' : c.ready1 ? tr('common.ready') : '…';
+      this.el.readyP1.className = c.ready1 ? 'text-emerald-300' : 'text-slate-500';
     }
     if (this.el.readyP2) {
-      this.el.readyP2.textContent = !c.p2 ? '—' : c.ready2 ? 'Ready' : '…';
-      this.el.readyP2.className = c.ready2 ? 'text-emerald-400' : 'text-slate-500';
+      this.el.readyP2.textContent = !c.p2 ? '—' : c.ready2 ? tr('common.ready') : '…';
+      this.el.readyP2.className = c.ready2 ? 'text-emerald-300' : 'text-slate-500';
     }
+    this.el.pillP1?.classList.toggle('is-ready', !!c.ready1);
+    this.el.pillP2?.classList.toggle('is-ready', !!c.ready2);
+    this.el.qrBlockP1?.classList.toggle('is-connected', !!c.p1);
+    this.el.qrBlockP2?.classList.toggle('is-connected', !!c.p2);
     const hostControls = !this.isGuestScreen;
     if (this.el.btnAi) this.el.btnAi.disabled = !hostControls || !(c.p1 && c.ready1);
     if (this.el.btnLocal) {
@@ -1250,25 +1303,24 @@ class TennisGame {
     this.setupMode = mode === 'remote' ? 'remote' : 'couch';
     this._updateSetupModeUi();
     if (this.setupMode === 'remote') {
-      this.el.lobbyStatus.textContent = this.room
-        ? `Your room code is ${this.room} — give it to the other player, then scan the QR with your phone.`
-        : 'Share your room code with the other player.';
+      if (this.room) this._setStatus('status.shareCodeWith', { code: this.room });
+      else this._setStatus('status.shareCode');
     } else {
-      this.el.lobbyStatus.textContent = 'Scan the QR codes — one phone per player.';
+      this._setStatus('status.scanBothQr');
     }
   }
 
   _startGame(mode) {
     if (!this.controllers.p1 || !this.controllers.ready1) {
-      this.el.lobbyStatus.textContent = 'Player 1 needs to tap Ready on the phone first.';
+      this._setStatus('status.needP1Ready', { player: this._playerName(1) });
       return;
     }
     if (mode === 'local' && this.controllers.p2 && !this.controllers.ready2) {
-      this.el.lobbyStatus.textContent = 'Player 2 needs to tap Ready on the phone first.';
+      this._setStatus('status.needP1Ready', { player: this._playerName(2) });
       return;
     }
     if (!this._ensureGraphics()) {
-      this.el.message.textContent = 'Could not load the 3D court — please reload the page.';
+      this.el.message.textContent = tr('status.noCourt');
       return;
     }
     this.mode = mode;
@@ -1277,11 +1329,8 @@ class TennisGame {
     this.servingSide = 1;
     this.el.lobby.classList.add('hidden');
     this.el.hud.classList.remove('hidden');
-    const fmt = this._formatLabel();
-    this.el.matchLabel.textContent =
-      mode === 'ai' ? `${fmt} · vs AI` : `${fmt} · 2 Players`;
+    this._updateMatchLabel();
     this._syncNamesFromControllers(this.controllers);
-    if (mode === 'ai') this.playerNames.p2 = 'AI';
     this._applyNamesToHud();
     this._hideVictory();
     this._setSplitScreen(mode === 'local' && this.setupMode === 'couch');
@@ -1293,11 +1342,9 @@ class TennisGame {
     });
     this._onResize();
     this._serve();
-    this._showMessage(
-      mode === 'ai'
-        ? `${fmt} — you are the blue player`
-        : `${fmt} — good luck!`
-    );
+    this._message(mode === 'ai' ? 'tennis.msg.youAreBlue' : 'tennis.msg.goodLuck', {
+      format: this._formatLabel(),
+    });
     this._pushHud();
     this.crowd.unlock();
     this.crowd.startAmbience();
@@ -1313,7 +1360,7 @@ class TennisGame {
     this._setSplitScreen(false);
     this.el.hud.classList.add('hidden');
     this.el.lobby.classList.remove('hidden');
-    this.el.lobbyStatus.textContent = 'Back in the lobby — tap Ready on the phones to play again.';
+    this._setStatus('status.backInLobby');
     this._refreshLobby();
   }
 
@@ -1325,7 +1372,7 @@ class TennisGame {
     const mine = side === 1 ? m.points.p1 : m.points.p2;
     const theirs = side === 1 ? m.points.p2 : m.points.p1;
     if (mine >= 3 && theirs >= 3) {
-      if (m.advantage === side) return 'AD';
+      if (m.advantage === side) return tr('tennis.pointAd');
       return '40';
     }
     return ['0', '15', '30', '40'][Math.min(mine, 3)];
@@ -1350,6 +1397,12 @@ class TennisGame {
   }
 
   _updateScoreHud() {
+    this._renderScoreboard();
+    this.socket.emit('scoreUpdate', this._scorePayload());
+  }
+
+  /** Paint the scoreboard without notifying the phones. */
+  _renderScoreboard() {
     const m = this.match;
     if (this.el.setsP1) this.el.setsP1.textContent = String(m.sets.p1);
     if (this.el.setsP2) this.el.setsP2.textContent = String(m.sets.p2);
@@ -1361,8 +1414,6 @@ class TennisGame {
     this.el.serveP2?.classList.toggle('on', this.servingSide === 2);
     this.el.nameP1?.classList.toggle('serving', this.servingSide === 1);
     this.el.nameP2?.classList.toggle('serving', this.servingSide === 2);
-    const payload = this._scorePayload();
-    this.socket.emit('scoreUpdate', payload);
   }
 
   _pushHud(extra = {}) {
@@ -1376,10 +1427,21 @@ class TennisGame {
     this.socket.emit('hud', payload);
   }
 
-  _showMessage(text, duration = 1.8) {
+  /**
+   * Show a message on the screen. Pass `key`/`tokens` so connected phones can
+   * render the same message in their own language.
+   */
+  _showMessage(text, duration = 1.8, key = null, tokens = null) {
+    this._messageKey = key;
+    this._messageTokens = tokens;
     this.el.message.textContent = text;
     this.messageTimer = duration;
-    this._pushHud({ message: text });
+    this._pushHud({ message: text, messageKey: key, messageParams: tokens });
+  }
+
+  /** Convenience wrapper: translate locally and forward the key to the phones. */
+  _message(key, tokens, duration = 1.8) {
+    this._showMessage(tr(key, tokens), duration, key, tokens);
   }
 
   _haptic(slot, pattern, reason, powerLevel = 3) {
@@ -1403,7 +1465,7 @@ class TennisGame {
     this.bouncesThisSide = 0;
     this.lastHitter = 0;
     this.ai.reactedThisApproach = false;
-    this._showMessage(side === 1 ? 'Serve — your side (blue)' : 'Serve — far side', 1.2);
+    this._message(side === 1 ? 'tennis.msg.serveNear' : 'tennis.msg.serveFar', null, 1.2);
   }
 
   _awardPoint(winner) {
@@ -1450,12 +1512,12 @@ class TennisGame {
       }
       if (this.match.advantage && this.match.advantage !== winner) {
         this.match.advantage = 0;
-        this._showMessage('Deuce', 1.1);
+        this._message('tennis.msg.deuce', null, 1.1);
         this.crowd.playDeuce();
         return;
       }
       this.match.advantage = winner;
-      this._showMessage(winner === 1 ? 'Advantage P1' : 'Advantage P2', 1.1);
+      this._message('tennis.msg.advantage', { player: this._playerName(winner) }, 1.1);
       return;
     }
 
@@ -1466,14 +1528,11 @@ class TennisGame {
     }
     if (this.match.points.p1 >= 3 && this.match.points.p2 >= 3) {
       this.match.advantage = 0;
-      this._showMessage('Deuce', 1.1);
+      this._message('tennis.msg.deuce', null, 1.1);
       this.crowd.playDeuce();
       return;
     }
-    this._showMessage(
-      `${this._pointLabel(1)}–${this._pointLabel(2)}`,
-      1.0
-    );
+    this._showMessage(`${this._pointLabel(1)}–${this._pointLabel(2)}`, 1.0);
     this.crowd.playPoint(winner, 'point');
     this._triggerCrowdCheer(0.42);
   }
@@ -1484,7 +1543,7 @@ class TennisGame {
     this.match.tbPoints[wKey] += 1;
     const tw = this.match.tbPoints[wKey];
     const tl = this.match.tbPoints[lKey];
-    this._showMessage(`TB ${this.match.tbPoints.p1}–${this.match.tbPoints.p2}`, 1.0);
+    this._showMessage(`${this.match.tbPoints.p1}–${this.match.tbPoints.p2}`, 1.0);
     if (tw >= 7 && tw - tl >= 2) {
       this.match.games[wKey] += 1;
       this._winSet(winner);
@@ -1504,7 +1563,14 @@ class TennisGame {
 
     const gw = this.match.games[wKey];
     const gl = this.match.games[lKey];
-    this._showMessage(`Game P${winner} · ${this.match.games.p1}–${this.match.games.p2}`, 1.4);
+    this._message(
+      'tennis.msg.gameWon',
+      {
+        player: this._playerName(winner),
+        score: `${this.match.games.p1}–${this.match.games.p2}`,
+      },
+      1.4
+    );
     this.crowd.playPoint(winner, 'game');
     this._triggerCrowdCheer(0.65);
 
@@ -1513,7 +1579,7 @@ class TennisGame {
     } else if (gw === 6 && gl === 6) {
       this.match.tiebreak = true;
       this.match.tbPoints = { p1: 0, p2: 0 };
-      this._showMessage('Tiebreak!', 1.6);
+      this._message('tennis.msg.tiebreak', null, 1.6);
     }
   }
 
@@ -1529,8 +1595,12 @@ class TennisGame {
     if (this.match.sets[wKey] >= this.match.setsToWin) {
       this.match.matchOver = true;
     } else {
-      this._showMessage(
-        `Set ${this._displayName(winner)}! Sets ${this.match.sets.p1}–${this.match.sets.p2}`,
+      this._message(
+        'tennis.msg.setWon',
+        {
+          player: this._playerName(winner),
+          score: `${this.match.sets.p1}–${this.match.sets.p2}`,
+        },
         2
       );
       this.crowd.playPoint(winner, 'set');
@@ -1539,6 +1609,7 @@ class TennisGame {
   }
 
   _hideVictory() {
+    this._winnerSlot = 0;
     this._stopFireworks();
     this.el.victoryOverlay?.classList.add('hidden');
     if (this.el.victoryTitle) {
@@ -1546,29 +1617,42 @@ class TennisGame {
     }
   }
 
-  _showVictory(winner) {
-    const name = this._displayName(winner);
-    const score = `${this.match.sets.p1}–${this.match.sets.p2}`;
-    this._showMessage(`${name} wins the match!`, 8);
+  _renderVictoryText(winner) {
+    const name = this._playerName(winner);
     if (this.el.victoryTitle) {
       this.el.victoryTitle.textContent = name;
       this.el.victoryTitle.classList.remove('win-p1', 'win-p2');
       this.el.victoryTitle.classList.add(winner === 1 ? 'win-p1' : 'win-p2');
     }
     if (this.el.victorySub) {
-      this.el.victorySub.textContent = `Wins the match · Sets ${score}`;
+      this.el.victorySub.textContent = tr('tennis.victory.sub', {
+        score: `${this.match.sets.p1}–${this.match.sets.p2}`,
+      });
     }
+  }
+
+  _showVictory(winner) {
+    this._winnerSlot = winner;
+    const name = this._playerName(winner);
+    this._message('tennis.msg.matchWon', { player: name }, 8);
+    this._renderVictoryText(winner);
     this.el.victoryOverlay?.classList.remove('hidden');
+    this.el.btnVictoryLobby?.focus();
     this._startFireworks(winner);
     this.crowd.playPoint(winner, 'match');
     this._triggerCrowdCheer(1);
-    this._pushHud({ message: `${name} wins!`, matchOver: true });
+    this._pushHud({
+      messageKey: 'controller.hudWins',
+      messageParams: { player: name },
+      matchOver: true,
+    });
   }
 
   _startFireworks(winner) {
     this._stopFireworks();
     const canvas = this.el.fireworksCanvas;
     if (!canvas) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = canvas.getContext('2d');
     const colors =
       winner === 1
@@ -1984,16 +2068,16 @@ class TennisGame {
     if (!el) return;
     el.classList.remove('hidden', 'left', 'right', 'center', 'overhead', 'hint');
     if (side === 'left') {
-      el.textContent = mode === 'hint' ? '← SWING LEFT' : 'LEFT SWING';
+      el.textContent = mode === 'hint' ? `← ${tr('tennis.badge.left')}` : tr('tennis.badge.left');
       el.classList.add('left');
     } else if (side === 'right') {
-      el.textContent = mode === 'hint' ? 'SWING RIGHT →' : 'RIGHT SWING';
+      el.textContent = mode === 'hint' ? `${tr('tennis.badge.right')} →` : tr('tennis.badge.right');
       el.classList.add('right');
     } else if (side === 'overhead') {
-      el.textContent = mode === 'hint' ? '↑ OVERHEAD' : 'OVERHEAD SMASH';
+      el.textContent = tr('tennis.badge.overhead');
       el.classList.add('overhead');
     } else {
-      el.textContent = 'CENTER SWING';
+      el.textContent = tr('tennis.badge.center');
       el.classList.add('center');
     }
     if (mode === 'hint') el.classList.add('hint');
@@ -2068,12 +2152,12 @@ class TennisGame {
     this._showSwingBadge(shown, 'hit');
 
     if (!(inDepth && approaching && heightOk && lateral < maxLat && fresh)) {
-      this._showMessage('Too early / too far — swing when the ball is near you', 1.0);
+      this._message('tennis.msg.tooEarly', null, 1.0);
       return false;
     }
 
     if (!swingSide) {
-      this._showMessage('Need a LEFT or RIGHT swing', 0.9);
+      this._message('tennis.msg.needSwing', null, 0.9);
       return false;
     }
 
@@ -2112,10 +2196,9 @@ class TennisGame {
     if (wrongSide) {
       const outSign = swingSide === 'right' ? rightSign : -rightSign;
       aimX = outSign * (COURT.halfWidth + 5 + rawPower * 5);
-      this._showMessage(
-        needShown === 'right'
-          ? 'Wrong side! Need RIGHT — ball OUT'
-          : 'Wrong side! Need LEFT — ball OUT',
+      this._message(
+        needShown === 'right' ? 'tennis.msg.wrongSideRight' : 'tennis.msg.wrongSideLeft',
+        null,
         1.15
       );
       this._haptic(slot, [50, 30, 50], 'miss');
@@ -2162,9 +2245,11 @@ class TennisGame {
     this._playHitAnimation(slot, shown, quality);
 
     if (!wrongSide) {
-      const label = shown === 'right' ? 'RIGHT' : 'LEFT';
-      const place = aimPlacementLabel(aimBias);
-      this._showMessage(`${label} · ${place} · power ${powerLevel}/5`, 0.85);
+      this._message(
+        shown === 'right' ? 'tennis.msg.hitRight' : 'tennis.msg.hitLeft',
+        { place: aimPlacementLabel(aimBias), power: powerLevel },
+        0.85
+      );
     }
     return true;
   }
@@ -2366,7 +2451,11 @@ class TennisGame {
 
     if (this.messageTimer > 0) {
       this.messageTimer -= dt;
-      if (this.messageTimer <= 0 && this.el.message) this.el.message.textContent = '\u00a0';
+      if (this.messageTimer <= 0) {
+        this._messageKey = null;
+        this._messageTokens = null;
+        if (this.el.message) this.el.message.textContent = '\u00a0';
+      }
     }
 
     try {

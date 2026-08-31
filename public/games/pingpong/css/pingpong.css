@@ -1,21 +1,15 @@
-#pp-root canvas {
+#pp-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #16324f 0%, #070b16 72%);
+}
+
+#pp-root #game-canvas {
+  position: absolute;
+  inset: 0;
   display: block;
-  background: radial-gradient(ellipse at center, #1e3a5f 0%, #0f172a 70%);
-}
-
-.paddle {
-  fill: #38bdf8;
-}
-
-.paddle.p2 {
-  fill: #f87171;
-}
-
-.ball {
-  fill: #f8fafc;
-}
-
-.table-line {
-  stroke: rgba(255, 255, 255, 0.35);
-  stroke-width: 2;
+  width: 100%;
+  height: 100%;
 }

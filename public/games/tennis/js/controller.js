@@ -9,6 +9,9 @@
  * - Overhead = more vertical smash (up then down / little lateral).
  */
 (function () {
+  const i18n = window.CSPI18n;
+  const t = (key, tokens) => i18n.t(key, tokens);
+
   const params = new URLSearchParams(window.location.search);
   const roomParam = (params.get('room') || '').trim().toUpperCase();
   const gameParam = (params.get('game') || 'tennis').trim().toLowerCase();
@@ -87,14 +90,66 @@
 
   const socket = io({ transports: ['websocket', 'polling'], upgrade: true, rememberUpgrade: true });
 
-  function setStatus(text) {
+  /** Remembered so the whole controller can be re-rendered on a language switch. */
+  let statusKey = null;
+  let statusTokens = null;
+  let hudKey = null;
+  let hudTokens = null;
+  /** Last swing shown in the live strip, kept raw so its labels can be re-translated. */
+  let hudSwing = null;
+
+  function setStatus(key, tokens) {
+    statusKey = key;
+    statusTokens = tokens || null;
+    els.statusText.textContent = t(key, tokens);
+  }
+
+  /** Write the live strip message from a key so it follows the chosen language. */
+  function setHudMsg(key, tokens) {
+    hudKey = key;
+    hudTokens = tokens || null;
+    hudSwing = null;
+    if (els.hudMsg) els.hudMsg.textContent = t(key, tokens);
+  }
+
+  /** Write the live strip from a swing, re-deriving the side and placement labels. */
+  function setHudSwing(side, aim, powerLevel) {
+    hudKey = null;
+    hudTokens = null;
+    hudSwing = { side, aim, powerLevel };
+    if (!els.hudMsg) return;
+    els.hudMsg.textContent = t('controller.hudSwing', {
+      side: t(side === 'left' ? 'controller.practiceLeft' : 'controller.practiceRight'),
+      place: aimPlacementLabel(aim),
+      power: powerLevel,
+    });
+  }
+
+  function renderHudMsg() {
+    if (hudKey) setHudMsg(hudKey, hudTokens);
+    else if (hudSwing) setHudSwing(hudSwing.side, hudSwing.aim, hudSwing.powerLevel);
+  }
+
+  /** For text that is already localized or comes straight from the server. */
+  function setStatusRaw(text) {
+    statusKey = null;
+    statusTokens = null;
     els.statusText.textContent = text;
   }
 
+  let connected = false;
+
   function setConnected(on) {
-    els.connPill.textContent = on ? 'online' : 'offline';
-    els.connPill.style.background = on ? 'rgba(22, 163, 74, 0.45)' : 'rgba(51, 65, 85, 0.7)';
-    els.wiiLed.classList.toggle('on', on);
+    connected = !!on;
+    els.connPill.textContent = t(on ? 'common.online' : 'common.offline');
+    els.connPill.classList.toggle('is-ready', !!on);
+    els.wiiLed.classList.toggle('on', !!on);
+  }
+
+  /** Localized label for this phone's own slot. */
+  function selfName() {
+    if (state.slot === 2) return t('common.player2');
+    return t('common.player1');
   }
 
   function vibrate(pattern) {
@@ -174,28 +229,22 @@
     els.btnHandLeft?.classList.toggle('hand-active', !right);
   }
 
-  function updateHoldRules() {
-    const el = document.getElementById('hold-rules');
-    if (!el) return;
-    el.innerHTML = [
-      '<li>כדור בצד ימין של המגרש → חבטת ימין</li>',
-      '<li>כדור בצד שמאל של המגרש → חבטת שמאל</li>',
-      '<li>זווית הפלאפון בסוף החבטה קובעת לאן הכדור נוחת</li>',
-      '<li>חבטה חזקה יותר = כדור מהיר יותר</li>',
-    ].join('');
-  }
-
   function updateReadyButton() {
     if (!els.btnReady) return;
     els.btnReady.disabled = !state.slot || !state.calibrated;
-    els.btnReady.textContent = state.ready ? 'מוכן ✓ (לחץ לביטול)' : 'מוכן למשחק';
+    els.btnReady.textContent = t(
+      state.ready ? 'controller.readyButtonOn' : 'controller.readyButton'
+    );
     els.btnReady.classList.toggle('btn-primary', state.ready);
     els.btnReady.classList.toggle('btn-secondary', !state.ready);
     if (els.readyStatus) {
-      if (!state.slot) els.readyStatus.textContent = 'ממתין לחיבור…';
-      else if (!state.calibrated) els.readyStatus.textContent = 'הפעל שלט תנועה, ואז לחץ מוכן.';
-      else if (state.ready) els.readyStatus.textContent = `שחקן ${state.slot} מוכן — ממתין להתחלת המשחק מהמסך.`;
-      else els.readyStatus.textContent = `אתה שחקן ${state.slot}. לחץ מוכן כשאתה מוכן לשחק.`;
+      if (!state.slot) els.readyStatus.textContent = t('controller.readyWaitingConnect');
+      else if (!state.calibrated) els.readyStatus.textContent = t('controller.readyNeedMotion');
+      else if (state.ready) {
+        els.readyStatus.textContent = t('controller.readyWaitingStart', { player: selfName() });
+      } else {
+        els.readyStatus.textContent = t('controller.readyPrompt', { player: selfName() });
+      }
     }
   }
 
@@ -214,11 +263,8 @@
     state.handedness = hand === 'left' ? 'left' : 'right';
     localStorage.setItem(HAND_KEY, state.handedness);
     updateHandButtons();
-    updateHoldRules();
     setStatus(
-      state.handedness === 'right'
-        ? 'נקבע: יד ימין. חבוט ימינה או שמאלה לפי הצד שהכדור מגיע אליו.'
-        : 'נקבע: יד שמאל. חבוט ימינה או שמאלה לפי הצד שהכדור מגיע אליו.'
+      state.handedness === 'right' ? 'controller.handSetRight' : 'controller.handSetLeft'
     );
     updateViz();
   }
@@ -226,13 +272,13 @@
   function updateViz() {
     if (!els.motionReadout) return;
     if (!state.motionEnabled) {
-      els.motionReadout.textContent = 'ממתין להפעלת שלט תנועה…';
+      els.motionReadout.textContent = t('controller.motionWaiting');
     } else if (!state.calibrated) {
-      els.motionReadout.textContent = 'לחץ כיול ואז חבוט כמו במחבט';
+      els.motionReadout.textContent = t('controller.motionCalibrate');
     } else if (state.practiceMode) {
-      els.motionReadout.textContent = 'מצב אימון · חבוט ובדוק לאן הכדור הולך';
+      els.motionReadout.textContent = t('controller.motionPractice');
     } else {
-      els.motionReadout.textContent = 'מוכן — חבוט כשהכדור מגיע אליך';
+      els.motionReadout.textContent = t('controller.motionReady');
     }
   }
 
@@ -530,13 +576,6 @@
     };
   }
 
-  function endScreenLabel(nz) {
-    const v = Number(nz) || 0;
-    if (v > 0.15) return 'מסך→רצפה';
-    if (v < -0.15) return 'מסך→שמיים';
-    return 'מסך→אופקי';
-  }
-
   /**
    * Placement from stroke side + end screen tilt (gravity on phone Z / screen axis).
    * nz > 0: screen faces floor; nz < 0: screen faces sky.
@@ -554,9 +593,9 @@
 
   function aimPlacementLabel(aim) {
     const v = Number(aim) || 0;
-    if (v > 0.2) return 'אותו צד';
-    if (v < -0.2) return 'צד נגדי';
-    return 'אמצע';
+    if (v > 0.2) return t('controller.aimSame');
+    if (v < -0.2) return t('controller.aimCross');
+    return t('controller.aimCenter');
   }
 
   /** Push aim away from dead-zone center so court placement is clearer in game. */
@@ -583,7 +622,7 @@
 
   function resetPracticeDisplay() {
     if (els.practiceResult) els.practiceResult.className = 'practice-result practice-idle';
-    if (els.practiceSideLabel) els.practiceSideLabel.textContent = 'חכה לחבטה…';
+    if (els.practiceSideLabel) els.practiceSideLabel.textContent = t('controller.practiceWaiting');
     els.practiceDetailLines?.classList.add('hidden');
     if (els.practiceDetailLines) els.practiceDetailLines.textContent = '';
     els.practiceAimBlock?.classList.add('hidden');
@@ -619,41 +658,43 @@
 
     if (!detail || !detail.side) {
       el.classList.add('practice-miss');
-      if (els.practiceSideLabel) els.practiceSideLabel.textContent = 'לא זוהה / חלש מדי';
+      if (els.practiceSideLabel) {
+        els.practiceSideLabel.textContent = t('controller.practiceMissed');
+      }
       els.practiceDetailLines?.classList.add('hidden');
       els.practiceAimBlock?.classList.add('hidden');
-      if (els.hudMsg) els.hudMsg.textContent = 'לא זוהה — נסה חבטה חזקה יותר';
+      setHudMsg('controller.practiceMissed');
       return;
     }
 
     const aim = Math.max(-1, Math.min(1, Number(detail.aim) || 0));
     const place = aimPlacementLabel(aim);
     const level = detail.powerLevel || 1;
+    const sideLabel = t(
+      detail.side === 'right' ? 'controller.practiceRight' : 'controller.practiceLeft'
+    );
 
     if (detail.side === 'right') {
       el.classList.add('practice-right');
-      if (els.practiceSideLabel) els.practiceSideLabel.textContent = 'חבטת ימין';
       state.practiceCounts.right += 1;
     } else {
       el.classList.add('practice-left');
-      if (els.practiceSideLabel) els.practiceSideLabel.textContent = 'חבטת שמאל';
       state.practiceCounts.left += 1;
     }
+    if (els.practiceSideLabel) els.practiceSideLabel.textContent = sideLabel;
     bumpAimCounter(aim);
 
     if (els.practiceDetailLines) {
       els.practiceDetailLines.classList.remove('hidden');
-      els.practiceDetailLines.innerHTML = [
-        `נחיתה: <strong>${place}</strong> · עוצמה ${level}/5`,
-      ].join('<br>');
+      els.practiceDetailLines.textContent = t('controller.practiceLanding', {
+        place,
+        power: level,
+      });
     }
     els.practiceAimBlock?.classList.remove('hidden');
     setAimBar(aim);
     syncPracticeCounters();
-
-    if (els.hudMsg) {
-      els.hudMsg.textContent = `${detail.side === 'right' ? 'ימין' : 'שמאל'} · aim ${formatAimValue(aim)} (${place}) · ${level}/5`;
-    }
+    setHudSwing(detail.side, aim, level);
   }
 
   function setPracticeMode(on) {
@@ -661,16 +702,16 @@
     document.body.classList.toggle('practice-active', state.practiceMode);
     els.practicePanel?.classList.toggle('hidden', !state.practiceMode);
     if (els.btnPractice) {
-      els.btnPractice.textContent = state.practiceMode
-        ? 'מצב אימון פעיל'
-        : 'מצב אימון חבטות';
+      els.btnPractice.textContent = t(
+        state.practiceMode ? 'controller.practiceButtonOn' : 'controller.practiceButton'
+      );
       els.btnPractice.classList.toggle('hand-active', state.practiceMode);
     }
     if (state.practiceMode) {
-      setStatus('מצב אימון: חבוט ותראה לאן הכדור היה הולך.');
+      setStatus('controller.practiceOn');
       if (els.practiceResult) resetPracticeDisplay();
     } else {
-      setStatus('יצאת מאימון. אפשר לשחק.');
+      setStatus('controller.practiceOff');
     }
     updateViz();
   }
@@ -722,11 +763,7 @@
     els.wiiRemote?.classList.add('swing');
     setTimeout(() => els.wiiRemote?.classList.remove('swing'), 180);
     vibrate(hitSide === 'left' ? [20, 30, 40] : [40, 30, 20]);
-    if (!state.practiceMode) {
-      const sideLabel = hitSide === 'left' ? 'שמאל' : 'ימין';
-      const place = aimPlacementLabel(aim);
-      els.hudMsg.textContent = `חבטת ${sideLabel} · ${place} · עוצמה ${level}/5`;
-    }
+    if (!state.practiceMode) setHudSwing(hitSide, aim, level);
   }
 
   function readLinearAccel(ev) {
@@ -758,7 +795,7 @@
   }
 
   /**
-   * Start pose only: upright ("ישר") vs inverted ("הפוך").
+   * Start pose only: upright vs inverted.
    * L/R is decided later by motion toward screen vs toward back.
    */
   function poseFromGravity(gx, gy, gz, beta) {
@@ -905,7 +942,6 @@
       endBeta: endGrav.endBeta,
       tiltMax: endGrav.tiltMax,
       tiltMin: endGrav.tiltMin,
-      endScreen: endScreenLabel(nz),
       orientConf,
       forwardMs,
     };
@@ -1122,7 +1158,7 @@
     if (isSecureEnough()) return true;
 
     els.secureHint.classList.remove('hidden');
-    setStatus('מכין את חיישני התנועה…');
+    setStatus('controller.preparingSensors');
 
     try {
       const res = await fetch(`/tunnel.json?ts=${Date.now()}`, { cache: 'no-store' });
@@ -1130,8 +1166,11 @@
         const data = await res.json();
         if (data?.url) {
           const next = `${data.url.replace(/\/$/, '')}${location.pathname}${location.search}`;
-          els.secureHint.innerHTML =
-            `<a class="text-sky-300 underline" href="${next}">המשך כאן</a>`;
+          const link = document.createElement('a');
+          link.className = 'text-sky-300 underline';
+          link.href = next;
+          link.textContent = t('controller.continueHere');
+          els.secureHint.replaceChildren(link);
           location.replace(next);
           return false;
         }
@@ -1140,7 +1179,7 @@
       /* ignore */
     }
 
-    els.secureHint.textContent = 'סרוק שוב את הקוד מהמסך של המשחק.';
+    els.secureHint.textContent = t('controller.rescan');
     return false;
   }
 
@@ -1150,8 +1189,8 @@
 
     if (!isSecureEnough()) {
       els.secureHint.classList.remove('hidden');
-      els.secureHint.textContent = 'לא ניתן להפעיל חיישני תנועה בדף הזה.';
-      setStatus('סרוק שוב את הקוד מהמסך של המשחק.');
+      els.secureHint.textContent = t('controller.cannotEnableHere');
+      setStatus('controller.rescan');
       return;
     }
 
@@ -1162,7 +1201,7 @@
       ) {
         const motion = await DeviceMotionEvent.requestPermission();
         if (motion !== 'granted') {
-          setStatus('נדחתה גישה לתנועה. אשר בפופאפ של ספארי.');
+          setStatus('controller.motionDenied');
           return;
         }
       }
@@ -1185,17 +1224,17 @@
       state.motionEnabled = true;
       els.btnCalibrate.disabled = false;
       if (els.btnPractice) els.btnPractice.disabled = false;
-      els.btnMotion.textContent = 'שלט תנועה פעיל';
+      els.btnMotion.textContent = t('controller.motionActive');
       els.btnMotion.disabled = true;
       els.secureHint.classList.add('hidden');
-      setStatus('החזק את הפלאפון הפוך כלפי מעלה · דחף באלכסון למרכז הגוף');
+      setStatus('controller.holdInstruction');
       updateViz();
       setTimeout(() => {
         if (!state.calibrated && state.motionEnabled) calibrate(true);
       }, 500);
     } catch (err) {
       console.warn(err);
-      setStatus('לא ניתן להפעיל חיישנים. אשר את בקשת ההרשאה ונסה שוב.');
+      setStatus('controller.motionFailed');
     }
   }
 
@@ -1205,7 +1244,7 @@
     state.peakMag = 0;
     state.swingArmed = true;
     socket.emit('calibrate');
-    setStatus('כויל! מחזיקים זקוף · חבטה = דחיפה באלכסון לכיוון מרכז הגוף');
+    setStatus('controller.calibrated');
     if (!silent) vibrate([15, 30, 15]);
     if (els.btnPractice) els.btnPractice.disabled = false;
     updateViz();
@@ -1213,20 +1252,18 @@
   }
 
   function applyPlayerTheme(slot) {
-    document.body.classList.remove('player-p1', 'player-p2', 'bg-slate-950');
+    document.body.classList.remove('player-p1', 'player-p2');
     const n = Number(slot);
+    if (n !== 1 && n !== 2) return;
+
+    document.body.classList.add(n === 1 ? 'player-p1' : 'player-p2');
+    const themed = t(n === 1 ? 'controller.themeP1' : 'controller.themeP2', {
+      player: n === 1 ? t('common.player1') : t('common.player2'),
+    });
     const nameBit = state.playerName ? ` · ${state.playerName}` : '';
-    if (n === 1) {
-      document.body.classList.add('player-p1');
-      if (els.slotLabel) els.slotLabel.textContent = `שחקן 1 · כחול${nameBit}`;
-      const accent = document.getElementById('player-accent-label');
-      if (accent) accent.textContent = 'שחקן 1 — כחול';
-    } else if (n === 2) {
-      document.body.classList.add('player-p2');
-      if (els.slotLabel) els.slotLabel.textContent = `שחקן 2 · אדום${nameBit}`;
-      const accent = document.getElementById('player-accent-label');
-      if (accent) accent.textContent = 'שחקן 2 — אדום';
-    }
+    if (els.slotLabel) els.slotLabel.textContent = themed + nameBit;
+    const accent = document.getElementById('player-accent-label');
+    if (accent) accent.textContent = themed;
   }
 
   function savePlayerName(showStatus) {
@@ -1234,7 +1271,7 @@
     state.playerName = raw;
     localStorage.setItem(NAME_KEY, raw);
     if (!state.slot) {
-      if (showStatus) setStatus('השם נשמר במכשיר. יתעדכן אחרי החיבור לחדר.');
+      if (showStatus) setStatus('controller.nameSaved');
       return;
     }
     socket.emit('setPlayerName', { name: raw || (state.slot === 1 ? 'P1' : 'P2') }, (res) => {
@@ -1242,18 +1279,18 @@
         state.playerName = res.name;
         if (els.playerName) els.playerName.value = res.name === 'P1' || res.name === 'P2' ? raw : res.name;
         applyPlayerTheme(state.slot);
-        if (showStatus) setStatus(`השם עודכן: ${res.name}`);
+        if (showStatus) setStatus('controller.nameUpdated', { name: res.name });
       }
     });
   }
 
   function joinRoom() {
     if (!state.room) {
-      setStatus('סרוק את קוד ה־QR מהמסך של המשחק כדי להתחבר.');
-      els.slotLabel.textContent = 'לא מחובר לחדר';
+      setStatus('controller.scanToConnect');
+      els.slotLabel.textContent = t('controller.noRoom');
       return;
     }
-    els.roomLabel.textContent = `חדר ${state.room}`;
+    els.roomLabel.textContent = t('controller.roomLabel', { code: state.room });
     if (els.playerName && state.playerName) els.playerName.value = state.playerName;
     socket.emit(
       'join',
@@ -1265,8 +1302,8 @@
       },
       (res) => {
         if (!res?.ok) {
-          setStatus(res?.error || 'לא ניתן להצטרף.');
-          els.slotLabel.textContent = 'לא מחובר';
+          setStatusRaw(i18n.tError(res, 'status.joinFailed'));
+          els.slotLabel.textContent = t('common.offline');
           return;
         }
         state.slot = res.slot;
@@ -1279,11 +1316,7 @@
         }
         applyPlayerTheme(res.slot);
         if (els.wiiSlot) els.wiiSlot.textContent = String(res.slot);
-        setStatus(
-          res.slot === 1
-            ? 'מחובר כשחקן 1 (כחול). הזן שם, הפעל תנועה, ואז לחץ מוכן.'
-            : 'מחובר כשחקן 2 (אדום). הזן שם, הפעל תנועה, ואז לחץ מוכן.'
-        );
+        setStatus('controller.connectedAs', { player: selfName() });
         setConnected(true);
         updateReadyButton();
         if (state.playerName) savePlayerName(false);
@@ -1361,7 +1394,7 @@
   els.btnReady?.addEventListener('click', () => {
     unlockAudio();
     if (!state.slot || !state.calibrated) {
-      setStatus('קודם הפעל שלט תנועה.');
+      setStatus('controller.needMotionFirst');
       return;
     }
     setReady(!state.ready);
@@ -1370,7 +1403,7 @@
   els.btnHandLeft?.addEventListener('click', () => setHandedness('left'));
   els.btnPractice?.addEventListener('click', () => {
     if (!state.motionEnabled || !state.calibrated) {
-      setStatus('קודם הפעל שלט תנועה.');
+      setStatus('controller.needMotionFirst');
       return;
     }
     setPracticeMode(!state.practiceMode);
@@ -1388,14 +1421,14 @@
   });
   socket.on('disconnect', () => {
     setConnected(false);
-    setStatus('נותק. מתחבר מחדש…');
+    setStatus('controller.disconnected');
   });
   socket.on('screenDisconnected', () => {
-    setStatus('מסך המשחק נסגר.');
+    setStatus('controller.screenClosed');
   });
   socket.on('gameStarted', (data) => {
     unlockAudio();
-    els.hudMsg.textContent = data.mode === 'ai' ? 'מול מחשב — בהצלחה!' : '2 שחקנים — בהצלחה!';
+    setHudMsg(data.mode === 'ai' ? 'controller.hudVsAi' : 'controller.hudLocal');
     playHitFeedback(3, 'point');
   });
   socket.on('haptic', (data) => {
@@ -1408,16 +1441,23 @@
     } else {
       playHitFeedback(lvl, reason);
     }
-    if (reason === 'point') els.hudMsg.textContent = 'נקודה!';
-    if (reason === 'miss') els.hudMsg.textContent = 'פספוס / צד לא נכון';
-    if (reason === 'hit') els.hudMsg.textContent = `פגיעה! עוצמה ${lvl}/5`;
+    if (reason === 'point') setHudMsg('controller.hudPoint');
+    if (reason === 'miss') setHudMsg('controller.hudMiss');
+    if (reason === 'hit') setHudMsg('controller.hudHit', { power: lvl });
   });
   socket.on('hud', (data) => {
     if (data.display) els.hudScore.textContent = data.display;
     else if (data.sets && data.games)
       els.hudScore.textContent = `${data.sets.p1}-${data.sets.p2} | ${data.games.p1}-${data.games.p2} | ${data.pointsP1}-${data.pointsP2}`;
     else if (data.p1 != null && data.p2 != null) els.hudScore.textContent = `${data.p1} – ${data.p2}`;
-    if (data.message) els.hudMsg.textContent = data.message;
+    // The screen sends a translation key so the phone can render in its own language.
+    if (data.messageKey) setHudMsg(data.messageKey, data.messageParams);
+    else if (data.message) {
+      hudKey = null;
+      hudTokens = null;
+      hudSwing = null;
+      els.hudMsg.textContent = data.message;
+    }
   });
   socket.on('scoreUpdate', (data) => {
     if (data.display) els.hudScore.textContent = data.display;
@@ -1437,9 +1477,30 @@
     ensureIosHttps();
   }
 
-  if (!roomParam) setStatus('סרוק את קוד ה־QR מהמסך של המשחק כדי להתחבר.');
+  // Re-render everything this script owns when the player switches language.
+  window.addEventListener('csp:langchange', () => {
+    if (statusKey) setStatus(statusKey, statusTokens);
+    setConnected(connected);
+    updateReadyButton();
+    updateViz();
+    applyPlayerTheme(state.slot);
+    if (state.room) {
+      els.roomLabel.textContent = t('controller.roomLabel', { code: state.room });
+    }
+    if (els.btnMotion && state.motionEnabled) {
+      els.btnMotion.textContent = t('controller.motionActive');
+    }
+    if (els.btnPractice) {
+      els.btnPractice.textContent = t(
+        state.practiceMode ? 'controller.practiceButtonOn' : 'controller.practiceButton'
+      );
+    }
+    if (state.practiceMode) resetPracticeDisplay();
+    renderHudMsg();
+  });
+
+  if (!roomParam) setStatus('controller.scanToConnect');
   updateHandButtons();
-  updateHoldRules();
   updateViz();
   updateReadyButton();
 })();

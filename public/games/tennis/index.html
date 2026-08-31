@@ -3,84 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tennis</title>
+  <title data-i18n="tennis.docTitle">Tennis — CSP-GAMES</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260902c" />
+  <link rel="stylesheet" href="/css/style.css?v=20260903a" />
+  <script src="/js/i18n.js?v=20260903a"></script>
 </head>
-<body class="bg-slate-950 text-slate-100">
+<body>
   <div id="game-root">
-    <div id="lobby" class="absolute inset-0 z-20 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="panel w-full max-w-3xl p-6 md:p-8">
-        <div class="flex flex-col md:flex-row gap-8">
-          <div class="flex-1 space-y-4">
-            <p class="text-sm uppercase tracking-widest text-emerald-400 font-semibold">Tennis</p>
-            <h1 class="text-3xl md:text-4xl font-bold leading-tight">Swing your phone.<br />Play on the big screen.</h1>
+    <div id="lobby" class="absolute inset-0 z-20 flex items-start md:items-center justify-center p-4">
+      <div class="panel lobby-card w-full max-w-3xl p-5 md:p-8 my-auto">
+        <div class="app-header mb-5">
+          <div>
+            <p class="eyebrow" data-i18n="tennis.title">Tennis</p>
+            <h1 class="text-2xl md:text-3xl font-bold leading-tight mt-1" data-i18n="tennis.tagline">
+              Swing your phone. Play on the big screen.
+            </h1>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="/" class="btn btn-icon" data-i18n-aria-label="common.home" aria-label="Home">⌂</a>
+            <button type="button" class="btn btn-icon" data-lang-toggle>EN</button>
+          </div>
+        </div>
 
-            <div class="flex items-center gap-3 text-sm flex-wrap">
-              <span class="status-pill hidden" id="room-code-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
-              <span class="status-pill"><span class="dot" id="dot-p1"></span> P1 <span id="ready-p1" class="text-slate-500">…</span></span>
-              <span class="status-pill"><span class="dot" id="dot-p2"></span> P2 <span id="ready-p2" class="text-slate-500">…</span></span>
+        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+          <div class="flex-1 space-y-4 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="status-pill hidden" id="room-code-pill">
+                <span data-i18n="lobby.roomLabel">Room</span>
+                <strong id="room-code" class="numeric tracking-widest">----</strong>
+              </span>
+              <span class="status-pill" id="pill-p1">
+                <span class="dot" id="dot-p1"></span>
+                <span data-i18n="common.player1">Player 1</span>
+                <span id="ready-p1" class="text-slate-500">…</span>
+              </span>
+              <span class="status-pill" id="pill-p2">
+                <span class="dot" id="dot-p2"></span>
+                <span data-i18n="common.player2">Player 2</span>
+                <span id="ready-p2" class="text-slate-500">…</span>
+              </span>
             </div>
 
-            <p id="lobby-status" class="text-sm text-slate-400">Connecting…</p>
-            <p id="connect-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
+            <p id="lobby-status" class="lobby-status" data-i18n="status.connecting" aria-live="polite">
+              Connecting…
+            </p>
             <p id="controller-url" class="text-xs break-all text-sky-300 font-mono hidden"></p>
 
-            <div class="space-y-2 pt-1">
-              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Players</p>
-              <div class="flex flex-wrap gap-2" id="setup-mode" role="group" aria-label="Setup">
-                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-setup="couch">One screen</button>
-                <button type="button" class="btn btn-ghost text-sm format-btn" data-setup="remote">Two computers</button>
+            <div class="space-y-2">
+              <p class="field-label" data-i18n="lobby.playersLabel">Setup</p>
+              <div class="segmented" id="setup-mode" role="group" data-i18n-aria-label="lobby.playersLabel">
+                <button type="button" class="btn format-btn format-active" data-setup="couch" data-i18n="lobby.modeOneScreen">
+                  One screen
+                </button>
+                <button type="button" class="btn format-btn" data-setup="remote" data-i18n="lobby.modeTwoComputers">
+                  Two computers
+                </button>
               </div>
             </div>
 
-            <div id="couch-panel" class="space-y-1">
-              <p class="text-xs text-slate-400">Scan with one or two phones — first player is P1, second is P2.</p>
-            </div>
+            <p id="couch-panel" class="hint" data-i18n="lobby.couchHint">
+              Scan with one or two phones — the first phone is Player 1, the second is Player 2.
+            </p>
 
-            <div id="remote-guest-panel" class="hidden space-y-3 panel p-3">
-              <p class="text-xs text-slate-400">
-                Playing from another computer? Ask the first player for their room code, enter it here, then scan the QR that appears.
+            <div id="remote-guest-panel" class="hidden panel-soft p-3 space-y-3">
+              <p class="hint" data-i18n="lobby.remoteHint">
+                Playing from another computer? Ask the first player for their room code, enter it below,
+                then scan the code that appears.
               </p>
               <div class="flex gap-2">
-                <input id="join-room-input" maxlength="4" class="input uppercase tracking-widest w-24 text-center" placeholder="CODE" />
-                <button type="button" id="btn-join-room" class="btn btn-secondary text-sm">Join as P2</button>
+                <input
+                  id="join-room-input"
+                  maxlength="4"
+                  class="input input-code w-28"
+                  data-i18n-placeholder="lobby.joinPlaceholder"
+                  placeholder="CODE"
+                />
+                <button type="button" id="btn-join-room" class="btn btn-secondary btn-sm" data-i18n="lobby.joinButton">
+                  Join as Player 2
+                </button>
               </div>
-              <button id="btn-copy-room" type="button" class="btn btn-ghost text-sm">Copy my room code</button>
+              <button type="button" id="btn-copy-room" class="btn btn-ghost btn-sm" data-i18n="lobby.copyRoom">
+                Copy room code
+              </button>
             </div>
 
-            <div class="space-y-2 pt-1">
-              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Match format</p>
-              <div class="flex flex-wrap gap-2" id="format-pills" role="group" aria-label="Match format">
-                <button type="button" class="btn btn-ghost text-sm format-btn" data-format="1" data-sets-to-win="1">1 Set</button>
-                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-format="3" data-sets-to-win="2">Best of 3</button>
-                <button type="button" class="btn btn-ghost text-sm format-btn" data-format="5" data-sets-to-win="3">Best of 5</button>
+            <div class="space-y-2">
+              <p class="field-label" data-i18n="lobby.formatLabel">Match length</p>
+              <div class="segmented" id="format-pills" role="group" data-i18n-aria-label="lobby.formatLabel">
+                <button type="button" class="btn format-btn" data-format="1" data-sets-to-win="1" data-i18n="lobby.format1Set">1 Set</button>
+                <button type="button" class="btn format-btn format-active" data-format="3" data-sets-to-win="2" data-i18n="lobby.formatBo3">Best of 3</button>
+                <button type="button" class="btn format-btn" data-format="5" data-sets-to-win="3" data-i18n="lobby.formatBo5">Best of 5</button>
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-3 pt-2">
-              <button id="btn-ai" class="btn btn-primary" disabled>Play vs Computer</button>
-              <button id="btn-local" class="btn btn-secondary" disabled>Play 2 Players</button>
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button id="btn-ai" class="btn btn-primary" disabled data-i18n="lobby.startVsComputer">Play vs Computer</button>
+              <button id="btn-local" class="btn btn-secondary" disabled data-i18n="lobby.start2Players">Play 2 Players</button>
             </div>
-            <p class="text-xs text-slate-500">
-              Each phone taps <strong>Ready</strong>, then start the match from here.
+            <p class="hint" data-i18n="lobby.readyHint">
+              Every phone taps Ready, then start the match from this screen.
             </p>
           </div>
 
           <div class="flex flex-col items-center gap-3 shrink-0">
             <div class="flex gap-3">
-              <div class="text-center" id="qr-block-p1">
-                <img id="qr-p1" width="150" height="150" alt="QR code for player 1"
-                  class="bg-white rounded-xl p-2 w-[150px] h-[150px] object-contain" />
-                <p class="text-xs text-sky-300 mt-1">Player 1</p>
+              <div class="qr-card qr-card-p1" id="qr-block-p1">
+                <img id="qr-p1" width="148" height="148" data-i18n-alt="lobby.qrAltP1" alt="QR code for player 1" />
+                <p class="qr-card-label" data-i18n="lobby.qrPlayer1">Player 1</p>
               </div>
-              <div class="text-center" id="qr-block-p2">
-                <img id="qr-p2" width="150" height="150" alt="QR code for player 2"
-                  class="bg-white rounded-xl p-2 w-[150px] h-[150px] object-contain" />
-                <p class="text-xs text-rose-300 mt-1">Player 2</p>
+              <div class="qr-card qr-card-p2" id="qr-block-p2">
+                <img id="qr-p2" width="148" height="148" data-i18n-alt="lobby.qrAltP2" alt="QR code for player 2" />
+                <p class="qr-card-label" data-i18n="lobby.qrPlayer2">Player 2</p>
               </div>
             </div>
-            <p class="text-xs text-slate-400 text-center max-w-[220px]">Scan with the phone camera</p>
+            <p class="hint text-center max-w-[16rem]" data-i18n="lobby.scanHint">
+              Scan with your phone camera
+            </p>
             <img id="qr-img" width="1" height="1" alt="" class="hidden" aria-hidden="true" />
             <canvas id="qr-canvas" width="200" height="200" class="hidden" aria-hidden="true"></canvas>
           </div>
@@ -92,19 +130,19 @@
       <div class="split-divider" id="split-divider"></div>
       <div class="split-label left hidden" id="split-label-p1">P1</div>
       <div class="split-label right hidden" id="split-label-p2">P2</div>
-      <div class="flex justify-between items-start">
-        <button id="btn-back" class="btn btn-ghost interactive text-sm py-2 px-3">Lobby</button>
-        <div class="scoreboard tennis-board" id="tennis-board" aria-label="Match score">
-          <div class="tb-title">
-            <span id="match-label">Best of 7</span>
-          </div>
+
+      <div class="flex justify-between items-start gap-3">
+        <button id="btn-back" class="btn btn-ghost btn-sm interactive" data-i18n="common.lobby">Lobby</button>
+
+        <div class="scoreboard tennis-board" id="tennis-board" data-i18n-aria-label="tennis.title">
+          <div class="tb-title"><span id="match-label">Best of 3</span></div>
           <table class="tb-table">
             <thead>
               <tr>
                 <th class="tb-col-player"></th>
-                <th>Sets</th>
-                <th>Games</th>
-                <th>Points</th>
+                <th data-i18n="tennis.sets">Sets</th>
+                <th data-i18n="tennis.games">Games</th>
+                <th data-i18n="tennis.points">Points</th>
               </tr>
             </thead>
             <tbody>
@@ -113,38 +151,54 @@
                   <span class="tb-serve" id="serve-p1" aria-hidden="true"></span>
                   <span class="tb-name" id="name-p1">P1</span>
                 </td>
-                <td id="sets-p1">0</td>
-                <td id="games-p1">0</td>
-                <td class="tb-points" id="points-p1">0</td>
+                <td class="numeric" id="sets-p1">0</td>
+                <td class="numeric" id="games-p1">0</td>
+                <td class="tb-points numeric" id="points-p1">0</td>
               </tr>
               <tr id="row-p2">
                 <td class="tb-col-player">
                   <span class="tb-serve" id="serve-p2" aria-hidden="true"></span>
                   <span class="tb-name" id="name-p2">P2</span>
                 </td>
-                <td id="sets-p2">0</td>
-                <td id="games-p2">0</td>
-                <td class="tb-points" id="points-p2">0</td>
+                <td class="numeric" id="sets-p2">0</td>
+                <td class="numeric" id="games-p2">0</td>
+                <td class="tb-points numeric" id="points-p2">0</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <button id="btn-crowd-mute" type="button" class="btn btn-ghost interactive text-sm py-2 px-3" title="Toggle crowd sound" aria-pressed="false">🔊 Crowd</button>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            id="btn-crowd-mute"
+            type="button"
+            class="btn btn-ghost btn-sm interactive"
+            data-i18n-title="tennis.crowdToggle"
+            title="Toggle crowd sound"
+            aria-pressed="false"
+          >🔊</button>
+          <button type="button" class="btn btn-icon interactive" data-lang-toggle>EN</button>
+        </div>
       </div>
+
       <div class="text-center">
         <p id="swing-badge" class="swing-badge hidden">—</p>
-        <p id="message" class="text-lg md:text-2xl font-semibold drop-shadow-lg">&nbsp;</p>
-        <p class="text-xs text-slate-400 mt-1">15 · 30 · 40 · AD · set at 6 (TB at 6–6)</p>
+        <p id="message" class="hud-message" role="status" aria-live="polite">&nbsp;</p>
+        <p class="text-xs text-slate-300/70 mt-1" data-i18n="tennis.scoringHint">
+          15 · 30 · 40 · AD — a set is won at 6 games
+        </p>
       </div>
     </div>
 
     <div id="victory-overlay" class="victory-overlay hidden" aria-live="polite">
       <canvas id="fireworks-canvas" class="fireworks-canvas"></canvas>
       <div class="victory-card">
-        <p class="victory-eyebrow">Match complete</p>
-        <h2 id="victory-title" class="victory-title">Winner!</h2>
+        <p class="victory-eyebrow" data-i18n="tennis.victory.eyebrow">Match complete</p>
+        <h2 id="victory-title" class="victory-title" data-i18n="tennis.victory.title">Winner!</h2>
         <p id="victory-sub" class="victory-sub"></p>
-        <button type="button" id="btn-victory-lobby" class="btn btn-primary interactive mt-4">Back to Lobby</button>
+        <button type="button" id="btn-victory-lobby" class="btn btn-primary interactive" data-i18n="common.backToLobby">
+          Back to lobby
+        </button>
       </div>
     </div>
 
@@ -159,6 +213,6 @@
     }
   }
   </script>
-  <script type="module" src="/games/tennis/js/game.js?v=20260902c"></script>
+  <script type="module" src="/games/tennis/js/game.js?v=20260903a"></script>
 </body>
 </html>

@@ -3,89 +3,165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ping Pong</title>
+  <title data-i18n="pingpong.docTitle">Ping Pong — CSP-GAMES</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260902c" />
-  <link rel="stylesheet" href="/games/pingpong/css/pingpong.css?v=20260902c" />
+  <link rel="stylesheet" href="/css/style.css?v=20260903a" />
+  <link rel="stylesheet" href="/games/pingpong/css/pingpong.css?v=20260903a" />
+  <script src="/js/i18n.js?v=20260903a"></script>
 </head>
-<body class="bg-slate-950 text-slate-100">
-  <div id="pp-root" class="relative min-h-screen flex flex-col">
-    <div id="lobby" class="absolute inset-0 z-20 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="panel w-full max-w-3xl p-6 md:p-8">
-        <div class="flex flex-col md:flex-row gap-8">
-          <div class="flex-1 space-y-4">
-            <p class="text-sm uppercase tracking-widest text-sky-400 font-semibold">Ping Pong</p>
-            <h1 class="text-3xl font-bold">Swing your phone.<br />First to 11 wins.</h1>
-            <p class="text-sm text-slate-300">Hold the phone upright and swing left or right when the ball reaches your side.</p>
+<body>
+  <div id="pp-root">
+    <canvas id="game-canvas"></canvas>
 
-            <div class="flex items-center gap-3 text-sm flex-wrap">
-              <span class="status-pill hidden" id="room-code-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
-              <span class="status-pill"><span class="dot" id="dot-p1"></span> P1 <span id="ready-p1" class="text-slate-500">…</span></span>
-              <span class="status-pill"><span class="dot" id="dot-p2"></span> P2 <span id="ready-p2" class="text-slate-500">…</span></span>
+    <div id="lobby" class="absolute inset-0 z-20 flex items-start md:items-center justify-center p-4 overflow-y-auto">
+      <div class="panel lobby-card w-full max-w-3xl p-5 md:p-8 my-auto">
+        <div class="app-header mb-5">
+          <div>
+            <p class="eyebrow" data-i18n="pingpong.title">Ping Pong</p>
+            <h1 class="text-2xl md:text-3xl font-bold leading-tight mt-1" data-i18n="pingpong.tagline">
+              Swing your phone. First to 11 wins.
+            </h1>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="/" class="btn btn-icon" data-i18n-aria-label="common.home" aria-label="Home">⌂</a>
+            <button type="button" class="btn btn-icon" data-lang-toggle>EN</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+          <div class="flex-1 space-y-4 min-w-0">
+            <p class="hint" data-i18n="pingpong.howTo">
+              Hold the phone upright and swing when the ball reaches your side.
+            </p>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="status-pill hidden" id="room-code-pill">
+                <span data-i18n="lobby.roomLabel">Room</span>
+                <strong id="room-code" class="numeric tracking-widest">----</strong>
+              </span>
+              <span class="status-pill" id="pill-p1">
+                <span class="dot" id="dot-p1"></span>
+                <span data-i18n="common.player1">Player 1</span>
+                <span id="ready-p1" class="text-slate-500">…</span>
+              </span>
+              <span class="status-pill" id="pill-p2">
+                <span class="dot" id="dot-p2"></span>
+                <span data-i18n="common.player2">Player 2</span>
+                <span id="ready-p2" class="text-slate-500">…</span>
+              </span>
             </div>
 
-            <p id="lobby-status" class="text-sm text-slate-400">Connecting…</p>
+            <p id="lobby-status" class="lobby-status" data-i18n="status.connecting" aria-live="polite">
+              Connecting…
+            </p>
             <p id="controller-url" class="text-xs break-all text-sky-300 font-mono hidden"></p>
 
             <div class="space-y-2">
-              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Players</p>
-              <div class="flex flex-wrap gap-2" id="setup-mode">
-                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-setup="couch">One screen</button>
-                <button type="button" class="btn btn-ghost text-sm format-btn" data-setup="remote">Two computers</button>
+              <p class="field-label" data-i18n="lobby.playersLabel">Setup</p>
+              <div class="segmented" id="setup-mode" role="group" data-i18n-aria-label="lobby.playersLabel">
+                <button type="button" class="btn format-btn format-active" data-setup="couch" data-i18n="lobby.modeOneScreen">
+                  One screen
+                </button>
+                <button type="button" class="btn format-btn" data-setup="remote" data-i18n="lobby.modeTwoComputers">
+                  Two computers
+                </button>
               </div>
             </div>
 
-            <div id="couch-panel">
-              <p class="text-xs text-slate-400">Scan with one or two phones — first player is P1, second is P2.</p>
-            </div>
+            <p id="couch-panel" class="hint" data-i18n="lobby.couchHint">
+              Scan with one or two phones — the first phone is Player 1, the second is Player 2.
+            </p>
 
-            <div id="remote-guest-panel" class="hidden space-y-3 panel p-3">
-              <p class="text-xs text-slate-400">
-                Playing from another computer? Ask the first player for their room code, enter it here, then scan the QR that appears.
+            <div id="remote-guest-panel" class="hidden panel-soft p-3 space-y-3">
+              <p class="hint" data-i18n="lobby.remoteHint">
+                Playing from another computer? Ask the first player for their room code, enter it below,
+                then scan the code that appears.
               </p>
               <div class="flex gap-2">
-                <input id="join-room-input" maxlength="4" class="input uppercase tracking-widest w-24 text-center" placeholder="CODE" />
-                <button type="button" id="btn-join-room" class="btn btn-secondary text-sm">Join as P2</button>
+                <input
+                  id="join-room-input"
+                  maxlength="4"
+                  class="input input-code w-28"
+                  data-i18n-placeholder="lobby.joinPlaceholder"
+                  placeholder="CODE"
+                />
+                <button type="button" id="btn-join-room" class="btn btn-secondary btn-sm" data-i18n="lobby.joinButton">
+                  Join as Player 2
+                </button>
               </div>
-              <button id="btn-copy-room" type="button" class="btn btn-ghost text-sm">Copy my room code</button>
+              <button type="button" id="btn-copy-room" class="btn btn-ghost btn-sm" data-i18n="lobby.copyRoom">
+                Copy room code
+              </button>
             </div>
 
-            <div class="flex flex-wrap gap-3 pt-2">
-              <button id="btn-ai" class="btn btn-primary" disabled>Play vs Computer</button>
-              <button id="btn-local" class="btn btn-secondary" disabled>Play 2 Players</button>
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button id="btn-ai" class="btn btn-primary" disabled data-i18n="lobby.startVsComputer">Play vs Computer</button>
+              <button id="btn-local" class="btn btn-secondary" disabled data-i18n="lobby.start2Players">Play 2 Players</button>
             </div>
-            <p class="text-xs text-slate-500">Each phone taps <strong>Ready</strong>, then start the match from here.</p>
+            <p class="hint" data-i18n="lobby.readyHint">
+              Every phone taps Ready, then start the match from this screen.
+            </p>
           </div>
 
           <div class="flex flex-col items-center gap-3 shrink-0">
             <div class="flex gap-3">
-              <div class="text-center" id="qr-block-p1">
-                <img id="qr-p1" width="150" height="150" alt="QR code for player 1" class="bg-white rounded-xl p-2" />
-                <p class="text-xs text-sky-300 mt-1">Player 1</p>
+              <div class="qr-card qr-card-p1" id="qr-block-p1">
+                <img id="qr-p1" width="148" height="148" data-i18n-alt="lobby.qrAltP1" alt="QR code for player 1" />
+                <p class="qr-card-label" data-i18n="lobby.qrPlayer1">Player 1</p>
               </div>
-              <div class="text-center" id="qr-block-p2">
-                <img id="qr-p2" width="150" height="150" alt="QR code for player 2" class="bg-white rounded-xl p-2" />
-                <p class="text-xs text-rose-300 mt-1">Player 2</p>
+              <div class="qr-card qr-card-p2" id="qr-block-p2">
+                <img id="qr-p2" width="148" height="148" data-i18n-alt="lobby.qrAltP2" alt="QR code for player 2" />
+                <p class="qr-card-label" data-i18n="lobby.qrPlayer2">Player 2</p>
               </div>
             </div>
-            <p class="text-xs text-slate-400 text-center max-w-[220px]">Scan with the phone camera</p>
+            <p class="hint text-center max-w-[16rem]" data-i18n="lobby.scanHint">
+              Scan with your phone camera
+            </p>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="hud" class="hidden flex-col">
-      <div class="flex justify-between items-center px-4 py-2 text-lg font-mono">
-        <span id="score-p1">0</span>
-        <span class="text-slate-400 text-sm" id="match-status">Playing</span>
-        <span id="score-p2">0</span>
+    <div id="hud" class="hud-overlay hidden z-10">
+      <div class="flex justify-between items-start gap-3">
+        <button id="btn-back" class="btn btn-ghost btn-sm interactive" data-i18n="common.lobby">Lobby</button>
+
+        <div class="pp-board" id="pp-board">
+          <div class="pp-side pp-side-p1" id="pp-side-p1">
+            <span class="pp-side-name" id="pp-name-p1" data-i18n="common.player1">Player 1</span>
+            <span class="pp-side-score" id="score-p1">0</span>
+          </div>
+          <div class="pp-center">
+            <span id="match-status" data-i18n="pingpong.playing">Playing</span>
+            <span data-i18n="pingpong.target">First to 11</span>
+          </div>
+          <div class="pp-side pp-side-p2" id="pp-side-p2">
+            <span class="pp-side-name" id="pp-name-p2" data-i18n="common.player2">Player 2</span>
+            <span class="pp-side-score" id="score-p2">0</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-icon interactive" data-lang-toggle>EN</button>
       </div>
-      <p id="message" class="text-center text-sm text-amber-200 pb-1 min-h-[1.25rem]"></p>
+
+      <div class="text-center">
+        <p id="message" class="hud-message" role="status" aria-live="polite">&nbsp;</p>
+      </div>
     </div>
-    <canvas id="game-canvas" class="flex-1 w-full"></canvas>
+
+    <div id="victory-overlay" class="victory-overlay hidden" aria-live="polite">
+      <div class="victory-card">
+        <p class="victory-eyebrow" data-i18n="pingpong.victory.eyebrow">Match complete</p>
+        <h2 id="victory-title" class="victory-title" data-i18n="pingpong.victory.title">Winner!</h2>
+        <p id="victory-sub" class="victory-sub"></p>
+        <button type="button" id="btn-victory-lobby" class="btn btn-primary interactive" data-i18n="common.backToLobby">
+          Back to lobby
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/games/pingpong/js/game.js?v=20260902c"></script>
+  <script src="/games/pingpong/js/game.js?v=20260903a"></script>
 </body>
 </html>

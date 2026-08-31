@@ -5,124 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>שלט מחבט — Ping Pong</title>
+  <title data-i18n="controller.docTitle">Controller — CSP-GAMES</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260902c" />
+  <link rel="stylesheet" href="/css/style.css?v=20260903a" />
+  <script src="/js/i18n.js?v=20260903a"></script>
 </head>
-<body class="controller-body bg-slate-950 text-slate-100">
+<body class="controller-body">
   <div class="controller-shell">
     <header class="flex items-start justify-between gap-3">
-      <div>
-        <p class="text-xs uppercase tracking-widest font-semibold controller-accent" id="player-accent-label">שלט תנועה</p>
-        <h1 class="text-xl font-bold">הפלאפון = מחבט</h1>
-        <p id="slot-label" class="text-sm text-slate-400">מתחבר…</p>
+      <div class="min-w-0">
+        <p class="eyebrow controller-accent" id="player-accent-label" data-i18n="controller.title">
+          Motion controller
+        </p>
+        <h1 class="text-lg font-bold mt-0.5" data-i18n="controller.heading">Your phone is the racket</h1>
+        <p id="slot-label" class="text-sm text-slate-400" data-i18n="controller.connecting">Connecting…</p>
       </div>
-      <div class="text-left space-y-1">
-        <span class="status-pill" id="conn-pill">לא מחובר</span>
-        <p class="text-xs text-slate-500" id="room-label"></p>
+      <div class="flex flex-col items-end gap-1.5 shrink-0">
+        <button type="button" class="btn btn-icon" data-lang-toggle>EN</button>
+        <span class="status-pill" id="conn-pill" data-i18n="common.offline">Offline</span>
+        <p class="text-xs text-slate-500 numeric" id="room-label"></p>
       </div>
     </header>
 
+    <!-- Primary actions: everything needed to get into a match. -->
     <div class="panel p-4 space-y-3">
-      <p id="status-text" class="text-sm text-slate-300 leading-relaxed">
-        מחזיקים את הפלאפון זקוף וחובטים ימינה או שמאלה כשהכדור מגיע אליכם.
+      <p id="status-text" class="text-sm text-slate-300 leading-relaxed" data-i18n="controller.holdInstruction">
+        Hold the phone upright and push diagonally towards your body
       </p>
-      <ol class="text-xs text-slate-400 space-y-1 list-decimal list-inside" id="hold-rules">
-        <li>כדור בצד ימין של המגרש → חבטת ימין</li>
-        <li>כדור בצד שמאל של המגרש → חבטת שמאל</li>
-        <li>חבטה חזקה יותר = כדור מהיר יותר</li>
-      </ol>
-      <div class="space-y-2">
-        <p class="text-xs text-slate-400">השם שלך (יופיע בלוח התוצאות):</p>
-        <div class="flex gap-2">
-          <input
-            id="player-name"
-            type="text"
-            maxlength="16"
-            autocomplete="nickname"
-            placeholder="הקלד שם…"
-            class="name-input flex-1"
-          />
-          <button type="button" id="btn-save-name" class="btn btn-ghost shrink-0">שמור</button>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button id="btn-motion" class="btn btn-primary flex-1 min-w-[10rem] text-base py-3">
-          הפעל שלט תנועה
+
+      <button id="btn-motion" class="btn btn-primary btn-block btn-lg" data-i18n="controller.enableMotion">
+        Enable motion control
+      </button>
+
+      <button type="button" id="btn-ready" class="btn btn-secondary btn-block btn-lg" disabled data-i18n="controller.readyButton">
+        I am ready
+      </button>
+
+      <p id="ready-status" class="text-xs text-center text-slate-400" data-i18n="controller.readyWaitingConnect">
+        Waiting for a connection…
+      </p>
+
+      <div class="flex gap-2">
+        <button id="btn-calibrate" class="btn btn-ghost btn-sm flex-1" disabled data-i18n="controller.calibrate">
+          Calibrate
         </button>
-        <button id="btn-calibrate" class="btn btn-ghost flex-1 min-w-[8rem]" disabled>כיול</button>
+        <button type="button" id="btn-practice" class="btn btn-ghost btn-sm flex-1" disabled data-i18n="controller.practiceButton">
+          Practice swings
+        </button>
       </div>
-      <button type="button" id="btn-ready" class="btn btn-secondary w-full py-3 text-base" disabled>
-        מוכן למשחק
-      </button>
-      <p id="ready-status" class="text-xs text-center text-slate-400">התחבר → הפעל תנועה → לחץ מוכן. המשחק לא מתחיל אוטומטית.</p>
-      <div class="space-y-2">
-        <p class="text-xs text-slate-400">יד דומיננטית (משפיע על ימין/שמאל):</p>
-        <div class="flex gap-2">
-          <button type="button" id="btn-hand-right" class="btn btn-ghost flex-1 hand-btn">ימני</button>
-          <button type="button" id="btn-hand-left" class="btn btn-ghost flex-1 hand-btn">שמאלי</button>
-        </div>
-      </div>
-      <button type="button" id="btn-practice" class="btn btn-secondary w-full py-3 text-base" disabled>
-        מצב אימון חבטות
-      </button>
+
       <p id="secure-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
     </div>
 
+    <!-- Practice mode: shows where the ball would land. -->
     <div id="practice-panel" class="panel p-4 space-y-3 hidden">
       <div class="flex items-center justify-between gap-2">
-        <h2 class="text-sm font-semibold text-amber-300">אימון חבטות</h2>
-        <button type="button" id="btn-practice-exit" class="btn btn-ghost text-xs py-1 px-2">יציאה</button>
+        <h2 class="text-sm font-bold text-amber-300" data-i18n="controller.practiceTitle">Practice swings</h2>
+        <button type="button" id="btn-practice-exit" class="btn btn-ghost btn-sm" data-i18n="controller.practiceExit">
+          Exit
+        </button>
       </div>
-      <p class="text-xs text-slate-400 leading-relaxed">
-        בלי כדור — חובטים ורואים לאן הכדור היה הולך: צד, כיוון נחיתה ועוצמה.
+      <p class="hint" data-i18n="controller.practiceIntro">
+        No ball — swing and see where it would land: side, direction and power.
       </p>
+
       <div id="practice-result" class="practice-result practice-idle">
-        <div id="practice-side-label" class="practice-side-label">חכה לחבטה…</div>
+        <div id="practice-side-label" class="practice-side-label" data-i18n="controller.practiceWaiting">
+          Waiting for a swing…
+        </div>
         <div id="practice-detail-lines" class="practice-detail-lines hidden"></div>
         <div id="practice-aim-block" class="hidden w-full space-y-1">
           <div class="practice-aim-row">
-            <span>כיוון נחיתה (aim)</span>
+            <span data-i18n="controller.aimLabel">Landing direction</span>
             <span id="practice-aim-value" class="practice-aim-value">0.00</span>
           </div>
           <div class="aim-bar" aria-hidden="true">
             <div id="practice-aim-marker" class="aim-bar-marker"></div>
           </div>
           <div class="aim-bar-labels">
-            <span>צד נגדי (−1)</span>
-            <span>אמצע (0)</span>
-            <span>אותו צד (+1)</span>
+            <span data-i18n="controller.aimCross">Cross court</span>
+            <span data-i18n="controller.aimCenter">Centre</span>
+            <span data-i18n="controller.aimSame">Same side</span>
           </div>
         </div>
       </div>
-      <p id="practice-hint" class="text-xs text-center text-slate-500">
-        זווית הפלאפון בסוף החבטה קובעת אם הכדור הולך לאותו צד או לצד הנגדי
+
+      <p id="practice-hint" class="text-xs text-center text-slate-500" data-i18n="controller.practiceHint">
+        The phone angle at the end of the swing decides whether the ball goes cross court or to the same side.
       </p>
-      <div class="grid grid-cols-3 gap-2 text-center text-xs">
-        <div class="rounded-lg bg-slate-900/80 py-2">
-          <div class="text-sky-300 font-bold text-lg" id="prac-count-right">0</div>
-          <div class="text-slate-500">ימין</div>
+
+      <div class="practice-counters">
+        <div class="practice-counter">
+          <div class="practice-counter-value text-sky-300" id="prac-count-right">0</div>
+          <div class="practice-counter-label" data-i18n="controller.countRight">Right</div>
         </div>
-        <div class="rounded-lg bg-slate-900/80 py-2">
-          <div class="text-orange-300 font-bold text-lg" id="prac-count-left">0</div>
-          <div class="text-slate-500">שמאל</div>
+        <div class="practice-counter">
+          <div class="practice-counter-value text-orange-300" id="prac-count-left">0</div>
+          <div class="practice-counter-label" data-i18n="controller.countLeft">Left</div>
         </div>
-        <div class="rounded-lg bg-slate-900/80 py-2">
-          <div class="practice-count-same font-bold text-lg" id="prac-count-same">0</div>
-          <div class="text-slate-500">אותו צד</div>
+        <div class="practice-counter">
+          <div class="practice-counter-value practice-count-same" id="prac-count-same">0</div>
+          <div class="practice-counter-label" data-i18n="controller.countSame">Same side</div>
         </div>
-        <div class="rounded-lg bg-slate-900/80 py-2">
-          <div class="practice-count-cross font-bold text-lg" id="prac-count-cross">0</div>
-          <div class="text-slate-500">צד נגדי</div>
+        <div class="practice-counter">
+          <div class="practice-counter-value practice-count-cross" id="prac-count-cross">0</div>
+          <div class="practice-counter-label" data-i18n="controller.countCross">Cross</div>
         </div>
-        <div class="rounded-lg bg-slate-900/80 py-2 col-span-2">
-          <div class="practice-count-center font-bold text-lg" id="prac-count-center">0</div>
-          <div class="text-slate-500">אמצע</div>
+        <div class="practice-counter col-span-2">
+          <div class="practice-counter-value practice-count-center" id="prac-count-center">0</div>
+          <div class="practice-counter-label" data-i18n="controller.countCenter">Centre</div>
         </div>
       </div>
-      <button type="button" id="btn-practice-reset" class="btn btn-ghost w-full text-sm">אפס מונים</button>
+
+      <button type="button" id="btn-practice-reset" class="btn btn-ghost btn-sm btn-block" data-i18n="controller.practiceReset">
+        Reset counters
+      </button>
     </div>
 
+    <!-- Live phone visualization -->
     <div class="wii-stage" aria-hidden="true">
       <div class="wii-remote" id="wii-remote">
         <div class="wii-face">
@@ -130,26 +130,72 @@
           <div class="wii-label">P<span id="wii-slot">?</span></div>
         </div>
       </div>
-      <p class="text-center text-xs text-slate-400 mt-2" id="motion-readout">ממתין להפעלת תנועה…</p>
+      <p class="text-center text-xs text-slate-400 mt-2" id="motion-readout" data-i18n="controller.motionWaiting">
+        Waiting for motion control…
+      </p>
     </div>
 
-    <div class="flex justify-between text-sm px-1 gap-2">
-      <span>ניקוד <strong id="hud-score">0 | 0 | 0</strong></span>
-      <span id="hud-msg" class="text-slate-400 text-left">ממתין</span>
-    </div>
+    <details class="ctl-section">
+      <summary data-i18n="controller.howTitle">How to swing</summary>
+      <div class="ctl-section-body">
+        <ol class="text-xs text-slate-400 space-y-1.5 list-decimal list-inside" id="hold-rules">
+          <li data-i18n="controller.rule1">Ball on the right of the court → swing right</li>
+          <li data-i18n="controller.rule2">Ball on the left of the court → swing left</li>
+          <li data-i18n="controller.rule3">The phone angle at the end of the swing sets where the ball lands</li>
+          <li data-i18n="controller.rule4">A harder swing means a faster ball</li>
+        </ol>
+      </div>
+    </details>
 
-    <details class="panel p-3 text-sm text-slate-400">
-      <summary class="cursor-pointer text-slate-300">אין תנועה? שחקו במגע</summary>
-      <div id="touch-pad" class="touch-pad mt-3" role="application" aria-label="Touch control pad">
-        <div>
-          <p class="font-semibold text-slate-200">אזור מגע</p>
-          <p class="text-xs mt-1">החלק ימינה או שמאלה כדי לחבוט</p>
+    <details class="ctl-section">
+      <summary data-i18n="controller.nameLabel">Your name</summary>
+      <div class="ctl-section-body">
+        <div class="flex gap-2">
+          <input
+            id="player-name"
+            type="text"
+            maxlength="16"
+            autocomplete="nickname"
+            class="name-input flex-1"
+            data-i18n-placeholder="controller.namePlaceholder"
+            placeholder="Type a name…"
+          />
+          <button type="button" id="btn-save-name" class="btn btn-ghost btn-sm shrink-0" data-i18n="controller.saveName">
+            Save
+          </button>
+        </div>
+
+        <p class="field-label" data-i18n="controller.handLabel">Dominant hand</p>
+        <div class="flex gap-2">
+          <button type="button" id="btn-hand-right" class="btn btn-ghost btn-sm flex-1 hand-btn" data-i18n="controller.handRight">
+            Right
+          </button>
+          <button type="button" id="btn-hand-left" class="btn btn-ghost btn-sm flex-1 hand-btn" data-i18n="controller.handLeft">
+            Left
+          </button>
         </div>
       </div>
     </details>
+
+    <details class="ctl-section">
+      <summary data-i18n="controller.touchTitle">No motion? Play by touch</summary>
+      <div class="ctl-section-body">
+        <div id="touch-pad" class="touch-pad" role="application" data-i18n-aria-label="controller.touchAria">
+          <div>
+            <p class="font-semibold text-slate-200" data-i18n="controller.touchArea">Touch area</p>
+            <p class="text-xs mt-1" data-i18n="controller.touchHint">Swipe right or left to swing</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="ctl-live" role="status" aria-live="polite">
+      <span class="ctl-live-score numeric" id="hud-score">0 | 0 | 0</span>
+      <span class="ctl-live-msg" id="hud-msg" data-i18n="controller.hudWaiting">Waiting</span>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/games/tennis/js/controller.js?v=20260902c"></script>
+  <script src="/games/tennis/js/controller.js?v=20260903a"></script>
 </body>
 </html>

@@ -1,4 +1,55 @@
-/* Shared layout for desktop game screen and phone controller */
+/* ==========================================================================
+   CSP-GAMES design system
+   Shared by the hub, the desktop game screens and the phone controller.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+:root {
+  --bg: #070b16;
+  --bg-elevated: #0d1424;
+  --surface: rgba(15, 23, 42, 0.72);
+  --surface-solid: #111a2e;
+  --surface-hover: rgba(30, 41, 59, 0.85);
+
+  --border: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.34);
+
+  --text: #e9eefb;
+  --text-muted: #9aa8c4;
+  --text-faint: #6b7a99;
+
+  --p1: #38bdf8;
+  --p1-soft: #7dd3fc;
+  --p1-deep: #0c4a6e;
+  --p2: #fb7185;
+  --p2-soft: #fda4af;
+  --p2-deep: #7f1d3a;
+
+  --accent: #34d399;
+  --accent-deep: #052e16;
+  --warn: #fbbf24;
+  --danger: #f87171;
+
+  --radius-sm: 0.5rem;
+  --radius: 0.85rem;
+  --radius-lg: 1.25rem;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 2px 8px rgba(2, 6, 23, 0.4);
+  --shadow: 0 12px 32px rgba(2, 6, 23, 0.45);
+  --shadow-lg: 0 24px 64px rgba(2, 6, 23, 0.55);
+  --glow-accent: 0 0 28px rgba(52, 211, 153, 0.35);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-pop: cubic-bezier(0.2, 1.2, 0.3, 1);
+  --t-fast: 0.14s;
+  --t: 0.24s;
+
+  --font: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue",
+    Arial, "Noto Sans Hebrew", sans-serif;
+}
 
 *,
 *::before,
@@ -11,55 +62,494 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #0b1220;
-  color: #e8eefc;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
   -webkit-tap-highlight-color: transparent;
 }
 
-body.controller-body {
-  touch-action: pan-y;
-  overscroll-behavior-y: contain;
-  user-select: none;
-  padding:
-    env(safe-area-inset-top, 0)
-    env(safe-area-inset-right, 0)
-    env(safe-area-inset-bottom, 0)
-    env(safe-area-inset-left, 0);
-  transition: background 0.25s ease, box-shadow 0.25s ease;
+body {
+  /* Ambient glow behind every page. */
+  background-image:
+    radial-gradient(60rem 30rem at 15% -10%, rgba(56, 189, 248, 0.1), transparent 60%),
+    radial-gradient(50rem 28rem at 85% 0%, rgba(52, 211, 153, 0.08), transparent 60%);
+  background-attachment: fixed;
 }
 
-/* Player-colored phone frame (matches court racket colors) */
-body.controller-body.player-p1 {
-  background:
-    linear-gradient(180deg, rgba(14, 165, 233, 0.45), rgba(2, 6, 23, 0.96) 42%),
-    #020617;
-  box-shadow: inset 0 0 0 5px #38bdf8, inset 0 0 48px rgba(56, 189, 248, 0.35);
+/* Numbers and score strings must read left-to-right in every language. */
+.numeric {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
 }
 
-body.controller-body.player-p2 {
-  background:
-    linear-gradient(180deg, rgba(239, 68, 68, 0.42), rgba(2, 6, 23, 0.96) 42%),
-    #020617;
-  box-shadow: inset 0 0 0 5px #ef4444, inset 0 0 48px rgba(239, 68, 68, 0.32);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-body.controller-body.player-p1 .controller-accent {
-  color: #7dd3fc;
+/* --------------------------------------------------------------------------
+   2. Focus / accessibility
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--p1);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-body.controller-body.player-p2 .controller-accent {
-  color: #fca5a5;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-body.controller-body.player-p1 .controller-shell {
-  border-color: rgba(56, 189, 248, 0.45);
+/* --------------------------------------------------------------------------
+   3. Surfaces
+   -------------------------------------------------------------------------- */
+.panel {
+  position: relative;
+  backdrop-filter: blur(14px);
+  background: linear-gradient(180deg, rgba(17, 26, 46, 0.88), rgba(11, 18, 32, 0.82));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
-body.controller-body.player-p2 .controller-shell {
-  border-color: rgba(239, 68, 68, 0.45);
+.panel-soft {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  border: 0;
+  margin: 0;
+}
+
+.field-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.hint {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   4. Buttons
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.8rem 1.15rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t) var(--ease),
+    background var(--t) var(--ease),
+    border-color var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: var(--accent-deep);
+  box-shadow: 0 8px 22px rgba(5, 150, 105, 0.32);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 12px 30px rgba(5, 150, 105, 0.45);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: #f0f9ff;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.42);
+}
+
+.btn-ghost {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: var(--border-strong);
+}
+
+.btn-lg {
+  padding: 1rem 1.5rem;
+  font-size: 1.05rem;
+  border-radius: var(--radius-lg);
+}
+
+.btn-sm {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-ghost.crowd-muted {
+  opacity: 0.6;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+/* Icon-only round button (language toggle, close). */
+.btn-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--border);
+  color: var(--text);
+  flex: 0 0 auto;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.22);
+  border-color: var(--p1);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   5. Segmented control (setup mode / match format)
+   -------------------------------------------------------------------------- */
+.segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.segmented .btn {
+  border-radius: calc(var(--radius) - 0.25rem);
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  padding: 0.55rem 0.95rem;
+  font-size: 0.88rem;
+  box-shadow: none;
+}
+
+.segmented .btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text);
+  transform: none;
+}
+
+.format-btn.format-active,
+.segmented .btn.format-active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #e0f2fe;
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25);
+}
+
+.hand-btn.hand-active {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: rgba(52, 211, 153, 0.65);
+  color: #d1fae5;
+}
+
+/* --------------------------------------------------------------------------
+   6. Inputs
+   -------------------------------------------------------------------------- */
+.input,
+.name-input {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: rgba(2, 6, 23, 0.6);
+  color: var(--text);
+  padding: 0.7rem 0.9rem;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+
+.input::placeholder,
+.name-input::placeholder {
+  color: var(--text-faint);
+}
+
+.input:focus,
+.name-input:focus {
+  outline: none;
+  border-color: var(--p1);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.input-code {
+  text-align: center;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 1.1rem;
+  direction: ltr;
+}
+
+/* --------------------------------------------------------------------------
+   7. Pills, dots, badges
+   -------------------------------------------------------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: border-color var(--t) var(--ease), color var(--t) var(--ease);
+}
+
+.status-pill.is-ready {
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #d1fae5;
+}
+
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--text-faint);
+  display: inline-block;
+  flex: 0 0 auto;
+  transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+
+.dot.on {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.85);
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--p1-soft);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+/* --------------------------------------------------------------------------
+   8. Hub (home page)
+   -------------------------------------------------------------------------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0;
+  background: linear-gradient(180deg, #ffffff, #b6c6e6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(17, 26, 46, 0.9), rgba(11, 18, 32, 0.8));
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform var(--t) var(--ease),
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.game-card::after {
+  /* Colour wash that fades in on hover. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(
+    24rem 12rem at 80% 0%,
+    var(--card-glow, rgba(56, 189, 248, 0.22)),
+    transparent 70%
+  );
+  transition: opacity var(--t) var(--ease);
+}
+
+.game-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--card-border, rgba(56, 189, 248, 0.5));
+  box-shadow: var(--shadow-lg);
+}
+
+.game-card:hover::after {
+  opacity: 1;
+}
+
+.game-card-tennis {
+  --card-glow: rgba(52, 211, 153, 0.22);
+  --card-border: rgba(52, 211, 153, 0.5);
+}
+
+.game-card-pingpong {
+  --card-glow: rgba(56, 189, 248, 0.22);
+  --card-border: rgba(56, 189, 248, 0.5);
+}
+
+.game-card-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.game-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.game-card-cta {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--p1-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Arrow points along the reading direction. */
+.game-card-cta::after {
+  content: '→';
+  transition: transform var(--t) var(--ease);
+}
+
+[dir='rtl'] .game-card-cta::after {
+  content: '←';
+}
+
+.game-card:hover .game-card-cta::after {
+  transform: translateX(0.2rem);
+}
+
+[dir='rtl'] .game-card:hover .game-card-cta::after {
+  transform: translateX(-0.2rem);
+}
+
+.step {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.step-num {
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--p1-soft);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.step-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   9. Game screen shell
+   -------------------------------------------------------------------------- */
 #game-root {
   position: relative;
   width: 100vw;
@@ -79,75 +569,133 @@ body.controller-body.player-p2 .controller-shell {
 
 #lobby {
   z-index: 20;
+  overflow-y: auto;
+  animation: fade-in var(--t) var(--ease) both;
 }
 
 #hud {
   z-index: 10;
 }
 
-.panel {
-  backdrop-filter: blur(10px);
-  background: rgba(12, 20, 36, 0.82);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 1rem;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.btn {
-  display: inline-flex;
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lobby-card {
+  animation: rise-in 0.35s var(--ease) both;
+}
+
+/* QR presentation */
+.qr-card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  border: none;
-  border-radius: 0.75rem;
-  padding: 0.85rem 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid var(--border);
+  transition: border-color var(--t) var(--ease), transform var(--t) var(--ease);
 }
 
-.btn:active {
-  transform: scale(0.98);
+.qr-card img {
+  display: block;
+  width: 148px;
+  height: 148px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem;
 }
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.qr-card-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #052e16;
+.qr-card-p1 {
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
-.btn-secondary {
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  color: #eff6ff;
+.qr-card-p1 .qr-card-label {
+  color: var(--p1-soft);
 }
 
-.btn-ghost {
-  background: rgba(148, 163, 184, 0.15);
-  color: #e2e8f0;
+.qr-card-p2 {
+  border-color: rgba(251, 113, 133, 0.35);
 }
 
-.btn-ghost.crowd-muted {
-  opacity: 0.65;
-  border-color: rgba(248, 113, 113, 0.35);
+.qr-card-p2 .qr-card-label {
+  color: var(--p2-soft);
 }
 
-.dot {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 999px;
-  background: #64748b;
-  display: inline-block;
+.qr-card.is-connected {
+  border-color: rgba(52, 211, 153, 0.6);
 }
 
-.dot.on {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+.qr-card.is-connected img {
+  opacity: 0.35;
+  filter: grayscale(1);
 }
 
+#qr-canvas {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+}
+
+/* Lobby status line gets a leading pulse so changes are noticeable. */
+.lobby-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  min-height: 1.4rem;
+}
+
+.lobby-status::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--p1);
+  flex: 0 0 auto;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   10. HUD
+   -------------------------------------------------------------------------- */
 .hud-overlay {
   position: absolute;
   inset: 0;
@@ -162,34 +710,44 @@ body.controller-body.player-p2 .controller-shell {
   pointer-events: auto;
 }
 
+.hud-message {
+  max-width: min(90vw, 34rem);
+  margin-inline: auto;
+  text-align: center;
+  font-size: clamp(1rem, 2.4vw, 1.4rem);
+  font-weight: 750;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(2, 6, 23, 0.85);
+  min-height: 1.6em;
+}
+
 .scoreboard {
   display: flex;
   justify-content: center;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-shadow: none;
 }
 
 .tennis-board {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  min-width: min(92vw, 22rem);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82));
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.65rem;
-  padding: 0.45rem 0.65rem 0.55rem;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
+  gap: 0.3rem;
+  min-width: min(92vw, 21rem);
+  background: linear-gradient(180deg, rgba(9, 15, 28, 0.94), rgba(9, 15, 28, 0.86));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem 0.6rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
 
 .tb-title {
   text-align: center;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--text-faint);
 }
 
 .tb-table {
@@ -199,22 +757,22 @@ body.controller-body.player-p2 .controller-shell {
 }
 
 .tb-table th {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: 0.6rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #64748b;
-  padding: 0.15rem 0.45rem 0.35rem;
+  color: var(--text-faint);
+  padding: 0.15rem 0.4rem 0.3rem;
   text-align: center;
-  border-bottom: 1px solid rgba(71, 85, 105, 0.55);
+  border-bottom: 1px solid rgba(71, 85, 105, 0.5);
 }
 
 .tb-table td {
-  padding: 0.4rem 0.45rem;
+  padding: 0.35rem 0.4rem;
   text-align: center;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   color: #f1f5f9;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.45);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
 }
 
 .tb-table tr:last-child td {
@@ -222,20 +780,20 @@ body.controller-body.player-p2 .controller-shell {
 }
 
 .tb-col-player {
-  text-align: left !important;
+  text-align: start !important;
   width: 42%;
-  padding-left: 0.15rem !important;
+  padding-inline-start: 0.15rem !important;
 }
 
 .tb-table th.tb-col-player {
-  text-align: left !important;
+  text-align: start !important;
 }
 
 .tb-name {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: #e2e8f0;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 
 .tb-serve {
@@ -246,28 +804,102 @@ body.controller-body.player-p2 .controller-shell {
   margin-inline-end: 0.4rem;
   background: transparent;
   vertical-align: middle;
+  transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
 }
 
 .tb-serve.on {
-  background: #fbbf24;
+  background: var(--warn);
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.85);
 }
 
 #row-p1 .tb-name {
-  color: #7dd3fc;
+  color: var(--p1-soft);
 }
 
 #row-p2 .tb-name {
-  color: #fdba74;
+  color: var(--p2-soft);
 }
 
 .tb-points {
   color: #fde68a !important;
-  font-size: 1.25rem !important;
+  font-size: 1.2rem !important;
   font-weight: 800;
-  min-width: 2.4rem;
+  /* Wide enough for the spelled-out advantage label, so the board never jumps. */
+  min-width: 4.2rem;
+  white-space: nowrap;
 }
 
+/* Ping pong scoreboard */
+.pp-board {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(9, 15, 28, 0.94), rgba(9, 15, 28, 0.86));
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  min-width: min(92vw, 20rem);
+}
+
+.pp-side {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: background var(--t) var(--ease);
+}
+
+.pp-side.is-serving {
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.pp-side-name {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pp-side-p1 .pp-side-name {
+  color: var(--p1-soft);
+}
+
+.pp-side-p2 .pp-side-name {
+  color: var(--p2-soft);
+}
+
+.pp-side-score {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-center {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding-inline: 0.4rem;
+  border-inline: 1px solid rgba(71, 85, 105, 0.4);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* Split-screen guides stay physically left/right — they mark the viewport
+   halves, not the reading direction. */
 .split-label {
   position: absolute;
   top: 50%;
@@ -275,21 +907,22 @@ body.controller-body.player-p2 .controller-shell {
   z-index: 12;
   pointer-events: none;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.8);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-  writing-mode: horizontal-tb;
 }
 
 .split-label.left {
   left: 0.55rem;
-  color: #7dd3fc;
+  right: auto;
+  color: var(--p1-soft);
 }
 
 .split-label.right {
   right: 0.55rem;
-  color: #fda4af;
+  left: auto;
+  color: var(--p2-soft);
 }
 
 .split-divider {
@@ -298,8 +931,7 @@ body.controller-body.player-p2 .controller-shell {
   bottom: 0;
   left: 50%;
   width: 2px;
-  height: auto;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.3);
   z-index: 11;
   pointer-events: none;
   display: none;
@@ -309,6 +941,65 @@ body.controller-body.player-p2 .controller-shell {
   display: block;
 }
 
+/* --------------------------------------------------------------------------
+   11. Swing badge
+   -------------------------------------------------------------------------- */
+.swing-badge {
+  display: inline-block;
+  /* The ← / → hints point at a physical side of the court, so keep the badge
+     laid out left-to-right even when the rest of the UI is Hebrew. */
+  direction: ltr;
+  unicode-bidi: isolate;
+  margin: 0 auto 0.5rem;
+  padding: 0.45rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 1.3rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: badge-in 0.2s var(--ease-pop) both;
+}
+
+@keyframes badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.swing-badge.right {
+  background: rgba(56, 189, 248, 0.92);
+  color: var(--p1-deep);
+}
+
+.swing-badge.left {
+  background: rgba(249, 115, 22, 0.92);
+  color: #7c2d12;
+}
+
+.swing-badge.center {
+  background: rgba(148, 163, 184, 0.85);
+  color: #0f172a;
+}
+
+.swing-badge.overhead {
+  background: rgba(167, 139, 250, 0.92);
+  color: #2e1065;
+}
+
+.swing-badge.hint {
+  opacity: 0.75;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   12. Victory overlay
+   -------------------------------------------------------------------------- */
 .victory-overlay {
   position: absolute;
   inset: 0;
@@ -316,7 +1007,8 @@ body.controller-body.player-p2 .controller-shell {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 6, 23, 0.55);
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(3px);
   pointer-events: auto;
 }
 
@@ -337,54 +1029,54 @@ body.controller-body.player-p2 .controller-shell {
   z-index: 1;
   text-align: center;
   padding: 2rem 2.5rem;
-  border-radius: 1.25rem;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.88));
-  border: 1px solid rgba(253, 230, 138, 0.45);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 40px rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(11, 18, 32, 0.9));
+  border: 1px solid rgba(253, 230, 138, 0.4);
+  box-shadow: var(--shadow-lg), 0 0 48px rgba(251, 191, 36, 0.15);
   max-width: min(92vw, 28rem);
-  animation: victory-pop 0.55s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+  animation: victory-pop 0.55s var(--ease-pop) both;
 }
 
 .victory-eyebrow {
   margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #fbbf24;
-  font-weight: 700;
+  color: var(--warn);
+  font-weight: 800;
 }
 
 .victory-title {
   margin: 0.6rem 0 0.35rem;
-  font-size: clamp(2.4rem, 8vw, 4.2rem);
+  font-size: clamp(2.2rem, 7vw, 4rem);
   line-height: 1.05;
   font-weight: 900;
-  letter-spacing: 0.02em;
   color: #fff7ed;
-  text-shadow: 0 4px 24px rgba(251, 191, 36, 0.45);
+  text-shadow: 0 4px 24px rgba(251, 191, 36, 0.4);
+  word-break: break-word;
 }
 
 .victory-title.win-p1 {
-  color: #7dd3fc;
-  text-shadow: 0 4px 28px rgba(56, 189, 248, 0.55);
+  color: var(--p1-soft);
+  text-shadow: 0 4px 28px rgba(56, 189, 248, 0.5);
 }
 
 .victory-title.win-p2 {
-  color: #fda4af;
-  text-shadow: 0 4px 28px rgba(239, 68, 68, 0.5);
+  color: var(--p2-soft);
+  text-shadow: 0 4px 28px rgba(251, 113, 133, 0.5);
 }
 
 .victory-sub {
-  margin: 0;
-  font-size: 1.05rem;
-  color: #cbd5e1;
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 @keyframes victory-pop {
   from {
     opacity: 0;
-    transform: scale(0.72) translateY(18px);
+    transform: scale(0.75) translateY(16px);
   }
   to {
     opacity: 1;
@@ -392,65 +1084,225 @@ body.controller-body.player-p2 .controller-shell {
   }
 }
 
-.name-input {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.85);
-  color: #f1f5f9;
-  padding: 0.65rem 0.85rem;
+/* --------------------------------------------------------------------------
+   13. Phone controller
+   -------------------------------------------------------------------------- */
+body.controller-body {
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  user-select: none;
+  padding:
+    env(safe-area-inset-top, 0)
+    env(safe-area-inset-right, 0)
+    env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
+  transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+
+body.controller-body.player-p1 {
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.42), rgba(2, 6, 23, 0.96) 42%),
+    #020617;
+  box-shadow: inset 0 0 0 4px var(--p1), inset 0 0 48px rgba(56, 189, 248, 0.3);
+}
+
+body.controller-body.player-p2 {
+  background:
+    linear-gradient(180deg, rgba(244, 63, 94, 0.4), rgba(2, 6, 23, 0.96) 42%),
+    #020617;
+  box-shadow: inset 0 0 0 4px var(--p2), inset 0 0 48px rgba(251, 113, 133, 0.28);
+}
+
+body.controller-body.player-p1 .controller-accent {
+  color: var(--p1-soft);
+}
+
+body.controller-body.player-p2 .controller-accent {
+  color: var(--p2-soft);
+}
+
+body.controller-body.player-p1 .controller-shell {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+body.controller-body.player-p2 .controller-shell {
+  border-color: rgba(251, 113, 133, 0.4);
+}
+
+.controller-shell {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem;
+  gap: 0.85rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  margin: 0.3rem;
+}
+
+body.controller-body input,
+body.controller-body textarea {
+  touch-action: manipulation;
+  user-select: text;
+}
+
+/* Collapsible setup sections keep the controller short during a match. */
+.ctl-section {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+  overflow: hidden;
+}
+
+.ctl-section > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+.ctl-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ctl-section > summary::after {
+  content: '＋';
+  color: var(--text-faint);
+  font-weight: 400;
   font-size: 1rem;
 }
 
-.name-input:focus {
-  outline: none;
-  border-color: rgba(56, 189, 248, 0.7);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+.ctl-section[open] > summary::after {
+  content: '−';
 }
 
-.swing-badge {
-  display: inline-block;
-  margin: 0 auto 0.5rem;
-  padding: 0.45rem 1.1rem;
-  border-radius: 0.75rem;
-  font-size: 1.35rem;
+.ctl-section-body {
+  padding: 0 0.9rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* Primary swing surface: big, always reachable with a thumb. */
+.wii-stage {
+  flex: 0 0 auto;
+  min-height: 9.5rem;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  perspective: 700px;
+}
+
+body.controller-body.practice-active .wii-stage {
+  min-height: 7rem;
+}
+
+.wii-remote {
+  width: 4.2rem;
+  height: 11rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 55%, #94a3b8 100%);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px rgba(15, 23, 42, 0.15);
+  transform-style: preserve-3d;
+  transition: transform 0.05s linear, box-shadow var(--t) var(--ease);
+}
+
+.wii-remote.swing {
+  box-shadow:
+    0 0 32px rgba(250, 204, 21, 0.9),
+    0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.wii-face {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 1rem;
+  gap: 0.7rem;
+}
+
+.wii-led {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--text-faint);
+}
+
+.wii-led.on {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.9);
+}
+
+.wii-label {
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-}
-
-.swing-badge.right {
-  background: rgba(56, 189, 248, 0.9);
-  color: #0c4a6e;
-}
-
-.swing-badge.left {
-  background: rgba(249, 115, 22, 0.92);
-  color: #7c2d12;
-}
-
-.swing-badge.center {
-  background: rgba(148, 163, 184, 0.85);
   color: #0f172a;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
 }
 
-.swing-badge.overhead {
-  background: rgba(167, 139, 250, 0.92);
-  color: #2e1065;
+.touch-pad {
+  flex: 0 0 auto;
+  min-height: 9rem;
+  touch-action: none;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-strong);
+  background: rgba(2, 6, 23, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-muted);
 }
 
-.hand-btn.hand-active {
-  background: rgba(16, 185, 129, 0.35) !important;
-  border-color: rgba(52, 211, 153, 0.7) !important;
-  color: #ecfdf5 !important;
+/* Sticky live score/message bar at the bottom of the phone. */
+.ctl-live {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
+  background: rgba(2, 6, 23, 0.9);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  font-size: 0.85rem;
 }
 
-.format-btn.format-active {
-  background: rgba(56, 189, 248, 0.28) !important;
-  border-color: rgba(56, 189, 248, 0.75) !important;
-  color: #e0f2fe !important;
+.ctl-live-score {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #f8fafc;
 }
 
+.ctl-live-msg {
+  color: var(--text-muted);
+  text-align: end;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   14. Practice mode
+   -------------------------------------------------------------------------- */
 .practice-result {
   min-height: 5.5rem;
   display: flex;
@@ -459,12 +1311,11 @@ body.controller-body.player-p2 .controller-shell {
   justify-content: center;
   gap: 0.55rem;
   text-align: center;
-  border-radius: 1rem;
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  border-radius: var(--radius);
+  font-size: 1.7rem;
+  font-weight: 850;
   padding: 1rem;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 .practice-side-label {
@@ -475,10 +1326,9 @@ body.controller-body.player-p2 .controller-shell {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.4;
   opacity: 0.95;
 }
 
@@ -491,27 +1341,29 @@ body.controller-body.player-p2 .controller-shell {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0;
   margin-top: 0.15rem;
 }
 
 .practice-aim-value {
   font-variant-numeric: tabular-nums;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  direction: ltr;
+}
+
+/* The aim bar is a physical scale: orange (cross court) on the left, blue
+   (same side) on the right. Pin it to LTR so it matches in Hebrew too. */
+.aim-bar,
+.aim-bar-labels {
+  direction: ltr;
 }
 
 .aim-bar {
   position: relative;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    #ea580c 0%,
-    #64748b 50%,
-    #0ea5e9 100%
-  );
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #ea580c 0%, #64748b 50%, #0ea5e9 100%);
   overflow: visible;
 }
 
@@ -519,28 +1371,26 @@ body.controller-body.player-p2 .controller-shell {
   display: flex;
   justify-content: space-between;
   font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0;
+  font-weight: 650;
   opacity: 0.85;
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
 }
 
 .aim-bar-marker {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.55rem;
-  height: 1rem;
-  margin-top: -0.5rem;
-  margin-left: -0.275rem;
+  width: 0.5rem;
+  height: 1.05rem;
+  transform: translate(-50%, -50%);
   background: #f8fafc;
   border-radius: 2px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.45);
-  transition: left 0.12s ease;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  transition: left 0.14s var(--ease);
 }
 
 .practice-count-same {
-  color: #38bdf8;
+  color: var(--p1);
 }
 
 .practice-count-cross {
@@ -552,36 +1402,26 @@ body.controller-body.player-p2 .controller-shell {
 }
 
 .practice-result.practice-idle {
-  background: rgba(30, 41, 59, 0.9);
-  color: #94a3b8;
-  font-size: 1.1rem;
-  font-weight: 600;
+  background: rgba(30, 41, 59, 0.88);
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  font-weight: 650;
 }
 
 .practice-result.practice-idle .practice-side-label {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 650;
 }
 
 .practice-result.practice-right .practice-side-label,
 .practice-result.practice-left .practice-side-label {
-  font-size: 1.75rem;
-  font-weight: 800;
-}
-
-.practice-result.practice-right .practice-detail-lines,
-.practice-result.practice-left .practice-detail-lines,
-.practice-result.practice-right .practice-aim-row,
-.practice-result.practice-left .practice-aim-row,
-.practice-result.practice-right .aim-bar-labels,
-.practice-result.practice-left .aim-bar-labels {
-  color: inherit;
-  opacity: 0.92;
+  font-size: 1.7rem;
+  font-weight: 850;
 }
 
 .practice-result.practice-right {
   background: rgba(56, 189, 248, 0.92);
-  color: #0c4a6e;
+  color: var(--p1-deep);
 }
 
 .practice-result.practice-left {
@@ -600,164 +1440,43 @@ body.controller-body.player-p2 .controller-shell {
 }
 
 .practice-result.practice-miss .practice-side-label {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
-.swing-badge.hint {
-  opacity: 0.75;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-/* Controller-specific */
-.controller-shell {
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  gap: 1rem;
-  border: 2px solid transparent;
-  border-radius: 1.25rem;
-  margin: 0.35rem;
-  box-sizing: border-box;
-}
-
-body.controller-body input,
-body.controller-body textarea {
-  touch-action: manipulation;
-  user-select: text;
-}
-
-.tilt-viz {
-  position: relative;
-  height: 8rem;
-  border-radius: 1rem;
-  background: linear-gradient(180deg, #1e293b, #0f172a);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  overflow: hidden;
-}
-
-.tilt-horizon {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  background: rgba(148, 163, 184, 0.5);
-  transform-origin: center;
-}
-
-.tilt-marker {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1.4rem;
-  height: 1.4rem;
-  margin: -0.7rem 0 0 -0.7rem;
-  border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 16px rgba(34, 197, 94, 0.7);
-  transition: background 0.1s ease;
-}
-
-.tilt-marker.swing {
-  background: #facc15;
-  box-shadow: 0 0 22px rgba(250, 204, 21, 0.9);
-}
-
-.touch-pad {
-  flex: 0 0 auto;
-  min-height: 10rem;
-  touch-action: none;
-  border-radius: 1.25rem;
-  border: 1px dashed rgba(148, 163, 184, 0.45);
-  background: rgba(15, 23, 42, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.practice-counters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
   text-align: center;
-  padding: 1rem;
-  color: #94a3b8;
 }
 
-.wii-stage {
-  flex: 0 0 auto;
-  min-height: 10rem;
-  touch-action: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  perspective: 700px;
+.practice-counter {
+  border-radius: var(--radius-sm);
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.25rem;
 }
 
-body.controller-body.practice-active .wii-stage {
-  min-height: 7rem;
+.practice-counter-value {
+  font-size: 1.15rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
 }
 
-.wii-remote {
-  width: 4.2rem;
-  height: 12rem;
-  border-radius: 0.85rem;
-  background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 55%, #94a3b8 100%);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    inset 0 0 0 2px rgba(15, 23, 42, 0.15);
-  transform-style: preserve-3d;
-  transition: transform 0.05s linear, box-shadow 0.15s ease;
+.practice-counter-label {
+  font-size: 0.68rem;
+  color: var(--text-faint);
 }
 
-.wii-remote.swing {
-  box-shadow:
-    0 0 28px rgba(250, 204, 21, 0.85),
-    0 12px 28px rgba(0, 0, 0, 0.45);
+/* --------------------------------------------------------------------------
+   15. Language toggle
+   -------------------------------------------------------------------------- */
+.lang-toggle {
+  position: relative;
+  z-index: 40;
 }
 
-.wii-face {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 1rem;
-  gap: 0.75rem;
-}
-
-.wii-led {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: #64748b;
-}
-
-.wii-led.on {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
-}
-
-.wii-label {
-  font-weight: 800;
-  color: #0f172a;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  background: rgba(51, 65, 85, 0.7);
-}
-
-#qr-canvas {
-  background: #fff;
-  border-radius: 0.75rem;
-  padding: 0.5rem;
+.hud-overlay .lang-toggle {
+  pointer-events: auto;
 }
