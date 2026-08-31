@@ -8,7 +8,7 @@
 
   const TABLE = { w: 0, h: 0, margin: 28, padW: 90, padH: 12 };
   const HIT = {
-    swingWindowMs: 780,
+    swingWindowMs: 550,
     zoneDepth: 70,
     maxLateralMiss: 55,
     sideThreshold: 0.22,
@@ -70,6 +70,9 @@
     setupMode: document.getElementById('setup-mode'),
     couchPanel: document.getElementById('couch-panel'),
     remoteGuestPanel: document.getElementById('remote-guest-panel'),
+    roomCodePill: document.getElementById('room-code-pill'),
+    qrBlockP1: document.getElementById('qr-block-p1'),
+    qrBlockP2: document.getElementById('qr-block-p2'),
     scoreP1: document.getElementById('score-p1'),
     scoreP2: document.getElementById('score-p2'),
     matchStatus: document.getElementById('match-status'),
@@ -126,11 +129,16 @@
   }
 
   function updateSetupUi() {
+    const remote = setupMode === 'remote';
     els.setupMode?.querySelectorAll('[data-setup]').forEach((btn) => {
-      btn.classList.toggle('format-active', btn.dataset.setup === setupMode);
+      btn.classList.toggle('format-active', (btn.dataset.setup === 'remote') === remote);
     });
-    els.couchPanel?.classList.toggle('hidden', setupMode !== 'couch');
-    els.remoteGuestPanel?.classList.toggle('hidden', setupMode !== 'remote' || isGuestScreen);
+    els.couchPanel?.classList.toggle('hidden', remote);
+    els.remoteGuestPanel?.classList.toggle('hidden', !remote || isGuestScreen);
+    els.roomCodePill?.classList.toggle('hidden', !remote);
+    els.qrBlockP1?.classList.toggle('hidden', remote && isGuestScreen);
+    els.qrBlockP2?.classList.toggle('hidden', remote && !isGuestScreen);
+    els.setupMode?.classList.toggle('hidden', isGuestScreen);
   }
 
   function applyPhoneUrl(res) {
@@ -144,16 +152,16 @@
   }
 
   function joinHost() {
-    els.lobbyStatus.textContent = 'Creating room…';
+    els.lobbyStatus.textContent = 'Setting up…';
     socket.emit('join', { role: 'screen', game: GAME_ID }, (res) => {
       if (!res?.ok) {
-        els.lobbyStatus.textContent = res?.error || 'Failed';
+        els.lobbyStatus.textContent = res?.error || 'Could not start a game. Please reload.';
         return;
       }
       room = res.room;
       controllers = res.controllers || controllers;
       els.roomCode.textContent = room;
-      els.lobbyStatus.textContent = 'Scan QR with phones — swing like tennis (not tilt).';
+      els.lobbyStatus.textContent = 'Scan the QR code with your phone.';
       applyPhoneUrl(res);
       refreshLobby();
     });
@@ -162,14 +170,15 @@
   function joinGuest(code) {
     socket.emit('join', { role: 'screen', game: GAME_ID, room: code, guestScreen: true }, (res) => {
       if (!res?.ok) {
-        els.lobbyStatus.textContent = res?.error || 'Join failed';
+        els.lobbyStatus.textContent = res?.error || 'Could not join that room.';
         return;
       }
       room = res.room;
       isGuestScreen = true;
       controllers = res.controllers || controllers;
       els.roomCode.textContent = room;
-      els.lobbyStatus.textContent = 'P2 screen — scan QR here for P2 phone. Host starts match.';
+      els.lobbyStatus.textContent =
+        'Joined as Player 2 — scan the QR code below. Player 1 starts the match.';
       applyPhoneUrl(res);
       refreshLobby();
       updateSetupUi();
@@ -377,11 +386,11 @@
 
   function startGame(nextMode) {
     if (!controllers.p1 || !controllers.ready1) {
-      els.lobbyStatus.textContent = 'P1 must press Ready on phone.';
+      els.lobbyStatus.textContent = 'Player 1 needs to tap Ready on the phone first.';
       return;
     }
     if (nextMode === 'local' && (!controllers.p2 || !controllers.ready2)) {
-      els.lobbyStatus.textContent = 'P2 must press Ready.';
+      els.lobbyStatus.textContent = 'Player 2 needs to tap Ready on the phone first.';
       return;
     }
     mode = nextMode;
@@ -396,7 +405,7 @@
     resize();
     resetBall(1);
     socket.emit('startGame', { mode: nextMode });
-    showMessage(nextMode === 'ai' ? 'vs AI — swing when ball nears you' : '2 player — same swing rules as tennis');
+    showMessage(nextMode === 'ai' ? 'You are the blue paddle — good luck!' : 'Good luck!');
   }
 
   socket.on('connect', () => {
@@ -441,7 +450,7 @@
     running = true;
     els.lobby.classList.add('hidden');
     els.hud.classList.remove('hidden');
-    els.matchStatus.textContent = 'P2 view — waiting for sync';
+    els.matchStatus.textContent = 'Playing';
   });
 
   socket.on('gameSync', (payload) => {
@@ -487,11 +496,15 @@
     if (!btn || isGuestScreen) return;
     setupMode = btn.dataset.setup === 'remote' ? 'remote' : 'couch';
     updateSetupUi();
+    els.lobbyStatus.textContent =
+      setupMode === 'remote' && room
+        ? `Your room code is ${room} — give it to the other player, then scan the QR with your phone.`
+        : 'Scan the QR codes — one phone per player.';
   });
   els.btnJoinRoom?.addEventListener('click', () => {
     const code = (els.joinRoomInput?.value || '').trim().toUpperCase();
     if (code.length !== 4) {
-      els.lobbyStatus.textContent = 'Enter 4-letter room code.';
+      els.lobbyStatus.textContent = 'Room codes are 4 characters.';
       return;
     }
     location.href = `${location.origin}/games/pingpong?guest=1&room=${encodeURIComponent(code)}`;

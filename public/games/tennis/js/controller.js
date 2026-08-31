@@ -177,21 +177,12 @@
   function updateHoldRules() {
     const el = document.getElementById('hold-rules');
     if (!el) return;
-    if (state.handedness === 'left') {
-      el.innerHTML = [
-        '<li><strong>שמאלי – שמאל:</strong> התחלה הפוך → תנועה לכיוון המסך</li>',
-        '<li><strong>שמאלי – ימין:</strong> התחלה הפוך → תנועה לכיוון הגב</li>',
-        '<li>כדור בצד ימין של המגרש דורש חבטת ימין (ולהפך)</li>',
-        '<li><strong>כיוון נחיתה:</strong> סיום ישר → אותו צד · מסך למעלה/רצפה → צד נגדי</li>',
-      ].join('');
-    } else {
-      el.innerHTML = [
-        '<li><strong>ימני – ימין:</strong> התחלה הפוך → תנועה לכיוון המסך</li>',
-        '<li><strong>ימני – שמאל:</strong> התחלה הפוך → תנועה לכיוון הגב</li>',
-        '<li>כדור בצד ימין של המגרש דורש חבטת ימין (ולהפך)</li>',
-        '<li><strong>כיוון נחיתה:</strong> סיום ישר → אותו צד · מסך למעלה/רצפה → צד נגדי</li>',
-      ].join('');
-    }
+    el.innerHTML = [
+      '<li>כדור בצד ימין של המגרש → חבטת ימין</li>',
+      '<li>כדור בצד שמאל של המגרש → חבטת שמאל</li>',
+      '<li>זווית הפלאפון בסוף החבטה קובעת לאן הכדור נוחת</li>',
+      '<li>חבטה חזקה יותר = כדור מהיר יותר</li>',
+    ].join('');
   }
 
   function updateReadyButton() {
@@ -202,9 +193,9 @@
     els.btnReady.classList.toggle('btn-secondary', !state.ready);
     if (els.readyStatus) {
       if (!state.slot) els.readyStatus.textContent = 'ממתין לחיבור…';
-      else if (!state.calibrated) els.readyStatus.textContent = 'הפעל שלט תנועה וכייל, ואז לחץ מוכן.';
-      else if (state.ready) els.readyStatus.textContent = `P${state.slot} מוכן — מחכים ללחיצת Start במחשב.`;
-      else els.readyStatus.textContent = `אתה שחקן ${state.slot}. לחץ מוכן כשאתה מוכן — המשחק לא מתחיל לבד.`;
+      else if (!state.calibrated) els.readyStatus.textContent = 'הפעל שלט תנועה, ואז לחץ מוכן.';
+      else if (state.ready) els.readyStatus.textContent = `שחקן ${state.slot} מוכן — ממתין להתחלת המשחק מהמסך.`;
+      else els.readyStatus.textContent = `אתה שחקן ${state.slot}. לחץ מוכן כשאתה מוכן לשחק.`;
     }
   }
 
@@ -226,8 +217,8 @@
     updateHoldRules();
     setStatus(
       state.handedness === 'right'
-        ? 'ימני: הפוך+תנועה למסך=ימין · הפוך+תנועה לגב=שמאל (הנחתה כבויה)'
-        : 'שמאלי: הפוך+תנועה למסך=שמאל · הפוך+תנועה לגב=ימין (הנחתה כבויה)'
+        ? 'נקבע: יד ימין. חבוט ימינה או שמאלה לפי הצד שהכדור מגיע אליו.'
+        : 'נקבע: יד שמאל. חבוט ימינה או שמאלה לפי הצד שהכדור מגיע אליו.'
     );
     updateViz();
   }
@@ -237,12 +228,11 @@
     if (!state.motionEnabled) {
       els.motionReadout.textContent = 'ממתין להפעלת שלט תנועה…';
     } else if (!state.calibrated) {
-      els.motionReadout.textContent = 'לחץ כיול ואז חבוט כמו מחבט';
+      els.motionReadout.textContent = 'לחץ כיול ואז חבוט כמו במחבט';
     } else if (state.practiceMode) {
-      els.motionReadout.textContent = 'מצב אימון · חבוט ובדוק את התוצאה';
+      els.motionReadout.textContent = 'מצב אימון · חבוט ובדוק לאן הכדור הולך';
     } else {
-      const hand = state.handedness === 'right' ? 'ימני' : 'שמאלי';
-      els.motionReadout.textContent = `${hand} · מסך קדימה · אלכסון למרכז הגוף`;
+      els.motionReadout.textContent = 'מוכן — חבוט כשהכדור מגיע אליך';
     }
   }
 
@@ -547,12 +537,6 @@
     return 'מסך→אופקי';
   }
 
-  function formatNzDebug(nz) {
-    if (nz == null || !Number.isFinite(nz)) return '—';
-    const sign = nz >= 0 ? '+' : '';
-    return `${sign}${nz.toFixed(2)}`;
-  }
-
   /**
    * Placement from stroke side + end screen tilt (gravity on phone Z / screen axis).
    * nz > 0: screen faces floor; nz < 0: screen faces sky.
@@ -644,8 +628,6 @@
 
     const aim = Math.max(-1, Math.min(1, Number(detail.aim) || 0));
     const place = aimPlacementLabel(aim);
-    const start = detail.pose?.inverted ? 'הפוך' : detail.pose?.upright ? 'ישר' : 'הפוך';
-    const dir = detail.toScreen ? '→מסך' : '→גב';
     const level = detail.powerLevel || 1;
 
     if (detail.side === 'right') {
@@ -661,22 +643,8 @@
 
     if (els.practiceDetailLines) {
       els.practiceDetailLines.classList.remove('hidden');
-      const endScreen = detail.endScreen || '—';
-      const fwdMs =
-        detail.forwardMs != null ? `${Math.round(detail.forwardMs)}ms` : '—';
-      const nzDbg = [
-        `ori ${formatNzDebug(detail.orientNz)}`,
-        `grav ${formatNzDebug(detail.gravNz)}`,
-        detail.endBeta != null ? `β${Math.round(detail.endBeta)}°` : '',
-        detail.tiltMax != null ? `↑${formatNzDebug(detail.tiltMax)}` : '',
-        detail.tiltMin != null ? `↓${formatNzDebug(detail.tiltMin)}` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ');
       els.practiceDetailLines.innerHTML = [
-        `התחלה: ${start} · תנועה ${dir} · סיום: ${endScreen} (${fwdMs})`,
-        `כיוון מסך: ${nzDbg}`,
-        `נחיתה: <strong>${place}</strong> · aim ${formatAimValue(aim)} · עוצמה ${level}/5`,
+        `נחיתה: <strong>${place}</strong> · עוצמה ${level}/5`,
       ].join('<br>');
     }
     els.practiceAimBlock?.classList.remove('hidden');
@@ -695,18 +663,14 @@
     if (els.btnPractice) {
       els.btnPractice.textContent = state.practiceMode
         ? 'מצב אימון פעיל'
-        : 'מצב אימון חבטות (בלי כדור)';
+        : 'מצב אימון חבטות';
       els.btnPractice.classList.toggle('hand-active', state.practiceMode);
     }
     if (state.practiceMode) {
-      setStatus(
-        state.handedness === 'right'
-          ? 'אימון ימני: הפוך→מסך=ימין · הפוך→גב=שמאל (בלי הנחתה)'
-          : 'אימון שמאלי: הפוך→מסך=שמאל · הפוך→גב=ימין (בלי הנחתה)'
-      );
+      setStatus('מצב אימון: חבוט ותראה לאן הכדור היה הולך.');
       if (els.practiceResult) resetPracticeDisplay();
     } else {
-      setStatus('יצאת מאימון. אפשר לשחק כרגיל.');
+      setStatus('יצאת מאימון. אפשר לשחק.');
     }
     updateViz();
   }
@@ -1158,7 +1122,7 @@
     if (isSecureEnough()) return true;
 
     els.secureHint.classList.remove('hidden');
-    setStatus('באייפון חובה HTTPS לחיישנים. מנסה להפנות…');
+    setStatus('מכין את חיישני התנועה…');
 
     try {
       const res = await fetch(`/tunnel.json?ts=${Date.now()}`, { cache: 'no-store' });
@@ -1167,7 +1131,7 @@
         if (data?.url) {
           const next = `${data.url.replace(/\/$/, '')}${location.pathname}${location.search}`;
           els.secureHint.innerHTML =
-            `פתח ב־HTTPS: <a class="text-sky-300 underline" href="${next}">${next}</a>`;
+            `<a class="text-sky-300 underline" href="${next}">המשך כאן</a>`;
           location.replace(next);
           return false;
         }
@@ -1176,8 +1140,7 @@
       /* ignore */
     }
 
-    els.secureHint.textContent =
-      'אין קישור HTTPS. במחשב הרץ: npm run start:phone ואז סרוק שוב את ה־QR מהלובי.';
+    els.secureHint.textContent = 'סרוק שוב את הקוד מהמסך של המשחק.';
     return false;
   }
 
@@ -1187,8 +1150,8 @@
 
     if (!isSecureEnough()) {
       els.secureHint.classList.remove('hidden');
-      els.secureHint.textContent = 'עדיין לא ב־HTTPS — באייפון החיישנים חסומים.';
-      setStatus('סרוק את ה־QR HTTPS מהלובי במחשב.');
+      els.secureHint.textContent = 'לא ניתן להפעיל חיישני תנועה בדף הזה.';
+      setStatus('סרוק שוב את הקוד מהמסך של המשחק.');
       return;
     }
 
@@ -1232,7 +1195,7 @@
       }, 500);
     } catch (err) {
       console.warn(err);
-      setStatus('לא ניתן להפעיל חיישנים. ודא HTTPS ואשר הרשאה.');
+      setStatus('לא ניתן להפעיל חיישנים. אשר את בקשת ההרשאה ונסה שוב.');
     }
   }
 
@@ -1242,7 +1205,7 @@
     state.peakMag = 0;
     state.swingArmed = true;
     socket.emit('calibrate');
-    setStatus('כויל! מחזיקים למעלה · חבטה = דחיפה באלכסון למרכז (ימין או שמאל לגוף)');
+    setStatus('כויל! מחזיקים זקוף · חבטה = דחיפה באלכסון לכיוון מרכז הגוף');
     if (!silent) vibrate([15, 30, 15]);
     if (els.btnPractice) els.btnPractice.disabled = false;
     updateViz();
@@ -1286,8 +1249,8 @@
 
   function joinRoom() {
     if (!state.room) {
-      setStatus('חסר קוד חדר. פתח מה־QR / הקישור מהמחשב עם ?room=');
-      els.slotLabel.textContent = 'אין חדר';
+      setStatus('סרוק את קוד ה־QR מהמסך של המשחק כדי להתחבר.');
+      els.slotLabel.textContent = 'לא מחובר לחדר';
       return;
     }
     els.roomLabel.textContent = `חדר ${state.room}`;
@@ -1318,8 +1281,8 @@
         if (els.wiiSlot) els.wiiSlot.textContent = String(res.slot);
         setStatus(
           res.slot === 1
-            ? 'מחובר כ־P1 (כחול). הגדר שם, הפעל תנועה, כייל, ואז מוכן.'
-            : 'מחובר כ־P2 (אדום). הגדר שם, הפעל תנועה, כייל, ואז מוכן.'
+            ? 'מחובר כשחקן 1 (כחול). הזן שם, הפעל תנועה, ואז לחץ מוכן.'
+            : 'מחובר כשחקן 2 (אדום). הזן שם, הפעל תנועה, ואז לחץ מוכן.'
         );
         setConnected(true);
         updateReadyButton();
@@ -1398,7 +1361,7 @@
   els.btnReady?.addEventListener('click', () => {
     unlockAudio();
     if (!state.slot || !state.calibrated) {
-      setStatus('קודם הפעל שלט תנועה וכיול.');
+      setStatus('קודם הפעל שלט תנועה.');
       return;
     }
     setReady(!state.ready);
@@ -1407,7 +1370,7 @@
   els.btnHandLeft?.addEventListener('click', () => setHandedness('left'));
   els.btnPractice?.addEventListener('click', () => {
     if (!state.motionEnabled || !state.calibrated) {
-      setStatus('קודם הפעל שלט תנועה וכיול.');
+      setStatus('קודם הפעל שלט תנועה.');
       return;
     }
     setPracticeMode(!state.practiceMode);
@@ -1474,7 +1437,7 @@
     ensureIosHttps();
   }
 
-  if (!roomParam) setStatus('פתח עם קישור שכולל ?room= מהמחשב.');
+  if (!roomParam) setStatus('סרוק את קוד ה־QR מהמסך של המשחק כדי להתחבר.');
   updateHandButtons();
   updateHoldRules();
   updateViz();

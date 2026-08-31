@@ -30,7 +30,7 @@ const HIT = {
   powerUp: 6.7,
   /** AI return chance by incoming human power level 1..5 */
   aiReturnChance: [0.9, 0.85, 0.8, 0.75, 0.7],
-  swingWindowMs: 780,
+  swingWindowMs: 550,
   /** How far past the sideline players may auto-run */
   runOverhang: 2.2,
   /** |ball.x| above this = clearly left/right side of court */
@@ -190,7 +190,7 @@ class TennisGame {
     } catch (err) {
       console.error('3D init failed', err);
       this.sceneReady = false;
-      const msg = `3D error: ${err && err.message ? err.message : err}`;
+      const msg = 'This device could not load 3D graphics. Try another browser or computer.';
       if (this.el?.lobbyStatus) this.el.lobbyStatus.textContent = msg;
       if (this.el?.message) this.el.message.textContent = msg;
     }
@@ -269,6 +269,9 @@ class TennisGame {
       joinRoomInput: document.getElementById('join-room-input'),
       btnJoinRoom: document.getElementById('btn-join-room'),
       btnCopyRoom: document.getElementById('btn-copy-room'),
+      roomCodePill: document.getElementById('room-code-pill'),
+      qrBlockP1: document.getElementById('qr-block-p1'),
+      qrBlockP2: document.getElementById('qr-block-p2'),
       qrP1: document.getElementById('qr-p1'),
       qrP2: document.getElementById('qr-p2'),
     };
@@ -876,43 +879,31 @@ class TennisGame {
     return serverUrl || window.location.origin + '/controller?' + gameQs;
   }
 
+  _showPhoneUrl(url) {
+    this.controllerUrl = url;
+    this.el.controllerUrl.textContent = url;
+    drawQr(this.el.qr, url, 'qr-p1');
+    drawQr(this.el.qr, url, 'qr-p2');
+  }
+
   async _applyPhoneUrl(room, lanIp, serverUrls) {
     if (!this._isLocalDev() && serverUrls?.controllerUrlHttps) {
-      this.controllerUrl = serverUrls.controllerUrlHttps;
-      this.el.controllerUrl.textContent = this.controllerUrl;
-      drawQr(this.el.qr, this.controllerUrl);
-      drawQr(this.el.qr, this.controllerUrl, 'qr-p1');
-      drawQr(this.el.qr, this.controllerUrl, 'qr-p2');
-      this.el.connectHint.classList.remove('hidden');
-      this.el.connectHint.textContent =
-        'Scan QR on your phone (HTTPS). Tap Enable Motion, then Ready.';
-      this.el.lobbyStatus.textContent = 'HTTPS ready — scan QR with your phone.';
+      this._showPhoneUrl(serverUrls.controllerUrlHttps);
+      this.el.lobbyStatus.textContent = 'Scan the QR code with your phone.';
       return;
     }
 
     const base = await this._resolvePhoneBaseUrl(lanIp);
-    this.controllerUrl = base + '/controller?game=' + GAME_ID + '&room=' + encodeURIComponent(room);
-    this.el.controllerUrl.textContent = this.controllerUrl;
-    drawQr(this.el.qr, this.controllerUrl);
-    drawQr(this.el.qr, this.controllerUrl, 'qr-p1');
-    drawQr(this.el.qr, this.controllerUrl, 'qr-p2');
-    const isHttps = this.controllerUrl.startsWith('https://');
-    this.el.connectHint.classList.remove('hidden');
-    if (isHttps) {
-      this.el.connectHint.textContent =
-        'iPhone: scan QR → Safari opens the controller. Tap Enable Motion, then Ready.';
-      this.el.lobbyStatus.textContent = 'HTTPS ready — scan QR with iPhone camera or Safari.';
-    } else {
-      this.el.connectHint.textContent =
-        'Waiting for HTTPS tunnel… keep start.bat running until trycloudflare.com appears, then Ctrl+F5.';
-      this.el.lobbyStatus.textContent = 'Tunnel not ready yet — wait for start.bat to show HTTPS URL.';
-    }
+    this._showPhoneUrl(
+      base + '/controller?game=' + GAME_ID + '&room=' + encodeURIComponent(room)
+    );
+    this.el.lobbyStatus.textContent = 'Scan the QR code with your phone.';
   }
 
   _joinAsGuestScreen(code) {
     if (this._joining) return;
     this._joining = true;
-    this.el.lobbyStatus.textContent = 'Joining room as P2 screen…';
+    this.el.lobbyStatus.textContent = 'Joining the room…';
     this.socket.emit(
       'join',
       { role: 'screen', game: GAME_ID, room: code, guestScreen: true },
@@ -927,7 +918,7 @@ class TennisGame {
         this.controllers = res.controllers || this.controllers;
         this.el.roomCode.textContent = this.room;
         this.el.lobbyStatus.textContent =
-          'P2 screen connected. Scan QR on THIS computer for the P2 phone. Host starts the match.';
+          'Joined as Player 2 — scan the QR code below with your phone. Player 1 starts the match.';
         this.controllerUrl = this._buildControllerUrl(res.room, res.controllerUrlHttps || res.controllerUrl, res.lanIp);
         await this._applyPhoneUrl(this.room, res.lanIp, res);
         this._refreshLobby();
@@ -939,24 +930,22 @@ class TennisGame {
   _joinAsScreen() {
     if (this._joining) return;
     this._joining = true;
-    this.el.lobbyStatus.textContent = 'Creating room…';
+    this.el.lobbyStatus.textContent = 'Setting up…';
     this.socket.emit('join', { role: 'screen', game: GAME_ID }, async (res) => {
       this._joining = false;
       if (!res || !res.ok) {
-        this.el.lobbyStatus.textContent = (res && res.error) || 'Failed to create room.';
+        this.el.lobbyStatus.textContent = (res && res.error) || 'Could not start a game. Please reload.';
         return;
       }
       this.room = res.room;
       this.controllers = res.controllers || { p1: false, p2: false };
       this.el.roomCode.textContent = this.room;
-      this.el.lobbyStatus.textContent = 'Waiting for phone controllers…';
       this.controllerUrl = this._buildControllerUrl(res.room, res.controllerUrlHttps || res.controllerUrl, res.lanIp);
       try {
         await this._applyPhoneUrl(this.room, res.lanIp, res);
       } catch (err) {
         console.error(err);
-        this.el.controllerUrl.textContent = this.controllerUrl;
-        drawQr(this.el.qr, this.controllerUrl);
+        this._showPhoneUrl(this.controllerUrl);
       }
       this._refreshLobby();
       if (this._tunnelTimer) clearInterval(this._tunnelTimer);
@@ -971,11 +960,7 @@ class TennisGame {
 
   _bindSocket() {
     this.socket.on('connect', () => {
-      this.el.lobbyStatus.textContent = this.room
-        ? 'Reconnected. Waiting for phones…'
-        : GUEST_SCREEN && JOIN_ROOM_PARAM
-          ? 'Connecting guest screen…'
-          : 'Connected. Creating room…';
+      this.el.lobbyStatus.textContent = this.room ? 'Reconnected.' : 'Setting up…';
       if (!this.room) {
         if (GUEST_SCREEN && JOIN_ROOM_PARAM) this._joinAsGuestScreen(JOIN_ROOM_PARAM);
         else this._joinAsScreen();
@@ -998,12 +983,12 @@ class TennisGame {
       );
     });
 
-    this.socket.on('connect_error', (err) => {
-      this.el.lobbyStatus.textContent = `Cannot reach server: ${err.message}`;
+    this.socket.on('connect_error', () => {
+      this.el.lobbyStatus.textContent = 'Connection problem — check your internet and reload.';
     });
 
     this.socket.on('disconnect', () => {
-      this.el.lobbyStatus.textContent = 'Disconnected from server…';
+      this.el.lobbyStatus.textContent = 'Connection lost — reconnecting…';
     });
 
     this.socket.on('roomState', (state) => {
@@ -1015,7 +1000,7 @@ class TennisGame {
     this.socket.on('controllerJoined', (data) => {
       this.controllers = data.controllers;
       this._syncNamesFromControllers(data.controllers);
-      this.el.lobbyStatus.textContent = `Player ${data.slot} connected — waiting for Ready.`;
+      this.el.lobbyStatus.textContent = `Player ${data.slot} joined — tap Ready on the phone.`;
       this._refreshLobby();
     });
 
@@ -1025,8 +1010,8 @@ class TennisGame {
         this._syncNamesFromControllers(data.controllers);
       }
       this.el.lobbyStatus.textContent = data.ready
-        ? `P${data.slot} is Ready.`
-        : `P${data.slot} cancelled Ready.`;
+        ? `Player ${data.slot} is ready.`
+        : `Player ${data.slot} is not ready.`;
       this._refreshLobby();
     });
 
@@ -1049,10 +1034,10 @@ class TennisGame {
     this.socket.on('controllerLeft', (data) => {
       this.controllers = data.controllers;
       this._syncNamesFromControllers(data.controllers);
-      this.el.lobbyStatus.textContent = `Player ${data.slot} disconnected.`;
+      this.el.lobbyStatus.textContent = `Player ${data.slot} left.`;
       this._refreshLobby();
       if (this.running && data.slot === 1) {
-        this._showMessage('P1 disconnected — returning to lobby');
+        this._showMessage('Player 1 left — back to the lobby');
         setTimeout(() => this._returnToLobby(), 1200);
       }
     });
@@ -1103,7 +1088,7 @@ class TennisGame {
       this._syncNamesFromControllers(this.controllers);
       this._applyNamesToHud();
       this._updateScoreHud();
-      this._showMessage('Match started — P2 view');
+      this._showMessage('Match started — good luck!');
       this.crowd.unlock();
       this.crowd.startAmbience();
     });
@@ -1129,15 +1114,6 @@ class TennisGame {
         el.classList.toggle('format-active', el === btn);
       });
     });
-    this.el.btnCopyUrl?.addEventListener('click', async () => {
-      if (!this.controllerUrl) return;
-      try {
-        await navigator.clipboard.writeText(this.controllerUrl);
-        this.el.lobbyStatus.textContent = 'Phone URL copied — paste it in the phone browser.';
-      } catch {
-        this.el.lobbyStatus.textContent = this.controllerUrl;
-      }
-    });
     this.el.btnCopyRoom?.addEventListener('click', async () => {
       if (!this.room) return;
       try {
@@ -1155,7 +1131,7 @@ class TennisGame {
     this.el.btnJoinRoom?.addEventListener('click', () => {
       const code = (this.el.joinRoomInput?.value || '').trim().toUpperCase();
       if (code.length !== 4) {
-        this.el.lobbyStatus.textContent = 'Enter a 4-character room code.';
+        this.el.lobbyStatus.textContent = 'Room codes are 4 characters.';
         return;
       }
       const url = `${location.origin}/games/tennis?guest=1&room=${encodeURIComponent(code)}`;
@@ -1253,40 +1229,46 @@ class TennisGame {
     }
   }
 
+  /**
+   * One screen: both QR codes, no room code.
+   * Two computers: room code + only this screen's own QR (P1 for host, P2 for guest).
+   */
   _updateSetupModeUi() {
-    const mode = this.setupMode;
+    const remote = this.setupMode === 'remote';
     this.el.setupModePills?.querySelectorAll('[data-setup]').forEach((btn) => {
-      btn.classList.toggle('format-active', btn.dataset.setup === mode);
+      btn.classList.toggle('format-active', (btn.dataset.setup === 'remote') === remote);
     });
-    this.el.couchPanel?.classList.toggle('hidden', mode !== 'couch');
-    this.el.remoteGuestPanel?.classList.toggle('hidden', mode !== 'remote' || this.isGuestScreen);
-    if (this.isGuestScreen) {
-      this.el.remoteGuestPanel?.classList.add('hidden');
-    }
+    this.el.couchPanel?.classList.toggle('hidden', remote);
+    this.el.remoteGuestPanel?.classList.toggle('hidden', !remote || this.isGuestScreen);
+    this.el.roomCodePill?.classList.toggle('hidden', !remote);
+    this.el.qrBlockP1?.classList.toggle('hidden', remote && this.isGuestScreen);
+    this.el.qrBlockP2?.classList.toggle('hidden', remote && !this.isGuestScreen);
+    this.el.setupModePills?.classList.toggle('hidden', this.isGuestScreen);
   }
 
   _setSetupMode(mode) {
     this.setupMode = mode === 'remote' ? 'remote' : 'couch';
     this._updateSetupModeUi();
     if (this.setupMode === 'remote') {
-      this.el.lobbyStatus.textContent =
-        'Remote mode: share room code with the other computer. Split screen is off on each PC.';
-    } else if (this.room) {
-      this.el.lobbyStatus.textContent = 'Couch mode: scan both QRs. Split screen when 2 players start.';
+      this.el.lobbyStatus.textContent = this.room
+        ? `Your room code is ${this.room} — give it to the other player, then scan the QR with your phone.`
+        : 'Share your room code with the other player.';
+    } else {
+      this.el.lobbyStatus.textContent = 'Scan the QR codes — one phone per player.';
     }
   }
 
   _startGame(mode) {
     if (!this.controllers.p1 || !this.controllers.ready1) {
-      this.el.lobbyStatus.textContent = 'P1 must press Ready on the phone first.';
+      this.el.lobbyStatus.textContent = 'Player 1 needs to tap Ready on the phone first.';
       return;
     }
     if (mode === 'local' && this.controllers.p2 && !this.controllers.ready2) {
-      this.el.lobbyStatus.textContent = 'P2 must press Ready on the phone first.';
+      this.el.lobbyStatus.textContent = 'Player 2 needs to tap Ready on the phone first.';
       return;
     }
     if (!this._ensureGraphics()) {
-      this.el.message.textContent = 'Cannot start 3D view — refresh the page (Ctrl+F5).';
+      this.el.message.textContent = 'Could not load the 3D court — please reload the page.';
       return;
     }
     this.mode = mode;
@@ -1313,8 +1295,8 @@ class TennisGame {
     this._serve();
     this._showMessage(
       mode === 'ai'
-        ? `Match start (${fmt}) — you are BLUE (near)`
-        : `Match start (${fmt}) — split screen: P1 left, P2 right`
+        ? `${fmt} — you are the blue player`
+        : `${fmt} — good luck!`
     );
     this._pushHud();
     this.crowd.unlock();
@@ -1331,7 +1313,7 @@ class TennisGame {
     this._setSplitScreen(false);
     this.el.hud.classList.add('hidden');
     this.el.lobby.classList.remove('hidden');
-    this.el.lobbyStatus.textContent = 'Back in lobby. Controllers stay connected — press Ready again to start.';
+    this.el.lobbyStatus.textContent = 'Back in the lobby — tap Ready on the phones to play again.';
     this._refreshLobby();
   }
 

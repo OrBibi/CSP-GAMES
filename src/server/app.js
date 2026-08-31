@@ -53,13 +53,7 @@ function createExpressApp({ rootDir, lanIp, port, httpsPort }) {
       res.setHeader('Cache-Control', 'no-store');
       return res.sendFile(file);
     }
-    const legacy = path.join(publicDir, 'controller.html');
-    if (fs.existsSync(legacy)) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(legacy);
-    }
-    res.redirect(302, `/games/${game}/controller${qs ? `?${qs}` : ''}`);
+    res.redirect(302, `/?${qs}`);
   });
 
   app.get('/controller.html', (req, res) => {
@@ -72,16 +66,11 @@ function createExpressApp({ rootDir, lanIp, port, httpsPort }) {
     res.redirect(302, `/controller?game=${req.params.gameId}${qs.replace('?', '&')}`);
   });
 
-  // Legacy tennis at root → hub game path
-  app.get('/index.html', (_req, res) => {
-    res.redirect(302, '/games/tennis');
-  });
-
   app.get('/tunnel.json', (_req, res) => {
     const file = path.join(publicDir, 'tunnel.json');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     if (!fs.existsSync(file)) {
-      res.status(404).json({ error: 'Tunnel not ready — run npm run dev and wait for trycloudflare.com URL.' });
+      res.status(404).json({ error: 'not available' });
       return;
     }
     res.sendFile(file);

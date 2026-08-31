@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ping Pong — Game Screen</title>
+  <title>Ping Pong</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260902b" />
-  <link rel="stylesheet" href="/games/pingpong/css/pingpong.css?v=20260902b" />
+  <link rel="stylesheet" href="/css/style.css?v=20260902c" />
+  <link rel="stylesheet" href="/games/pingpong/css/pingpong.css?v=20260902c" />
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="pp-root" class="relative min-h-screen flex flex-col">
@@ -15,55 +15,60 @@
         <div class="flex flex-col md:flex-row gap-8">
           <div class="flex-1 space-y-4">
             <p class="text-sm uppercase tracking-widest text-sky-400 font-semibold">Ping Pong</p>
-            <h1 class="text-3xl font-bold">Same swing as tennis.<br />2D table view.</h1>
-            <p class="text-sm text-slate-300">Hold phone like a Wii remote — swing left/right when the ball is near you (not tilt).</p>
+            <h1 class="text-3xl font-bold">Swing your phone.<br />First to 11 wins.</h1>
+            <p class="text-sm text-slate-300">Hold the phone upright and swing left or right when the ball reaches your side.</p>
 
             <div class="flex items-center gap-3 text-sm flex-wrap">
-              <span class="status-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
+              <span class="status-pill hidden" id="room-code-pill">Room <strong id="room-code" class="ml-1 tracking-widest">----</strong></span>
               <span class="status-pill"><span class="dot" id="dot-p1"></span> P1 <span id="ready-p1" class="text-slate-500">…</span></span>
               <span class="status-pill"><span class="dot" id="dot-p2"></span> P2 <span id="ready-p2" class="text-slate-500">…</span></span>
             </div>
 
             <p id="lobby-status" class="text-sm text-slate-400">Connecting…</p>
-            <p id="controller-url" class="text-sm break-all text-sky-300 font-mono"></p>
+            <p id="controller-url" class="text-xs break-all text-sky-300 font-mono hidden"></p>
 
             <div class="space-y-2">
-              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Setup</p>
+              <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Players</p>
               <div class="flex flex-wrap gap-2" id="setup-mode">
-                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-setup="couch">Same TV · 2 phones</button>
+                <button type="button" class="btn btn-ghost text-sm format-btn format-active" data-setup="couch">One screen</button>
                 <button type="button" class="btn btn-ghost text-sm format-btn" data-setup="remote">Two computers</button>
               </div>
             </div>
 
-            <div id="remote-guest-panel" class="hidden space-y-2 panel p-3">
-              <p class="text-xs text-slate-400">Join room on this PC (P2 screen):</p>
-              <div class="flex gap-2">
-                <input id="join-room-input" maxlength="4" class="input uppercase tracking-widest w-24 text-center" placeholder="CODE" />
-                <button type="button" id="btn-join-room" class="btn btn-secondary text-sm">Join P2 screen</button>
-              </div>
+            <div id="couch-panel">
+              <p class="text-xs text-slate-400">Scan with one or two phones — first player is P1, second is P2.</p>
             </div>
 
-            <div id="couch-panel">
-              <p class="text-xs text-slate-400">Two phones scan QRs — first = P1, second = P2.</p>
+            <div id="remote-guest-panel" class="hidden space-y-3 panel p-3">
+              <p class="text-xs text-slate-400">
+                Playing from another computer? Ask the first player for their room code, enter it here, then scan the QR that appears.
+              </p>
+              <div class="flex gap-2">
+                <input id="join-room-input" maxlength="4" class="input uppercase tracking-widest w-24 text-center" placeholder="CODE" />
+                <button type="button" id="btn-join-room" class="btn btn-secondary text-sm">Join as P2</button>
+              </div>
+              <button id="btn-copy-room" type="button" class="btn btn-ghost text-sm">Copy my room code</button>
             </div>
 
             <div class="flex flex-wrap gap-3 pt-2">
-              <button id="btn-ai" class="btn btn-primary" disabled>Start vs AI</button>
-              <button id="btn-local" class="btn btn-secondary" disabled>Start 2 Player</button>
-              <button id="btn-copy-url" type="button" class="btn btn-ghost text-sm">Copy phone URL</button>
-              <button id="btn-copy-room" type="button" class="btn btn-ghost text-sm">Copy room code</button>
+              <button id="btn-ai" class="btn btn-primary" disabled>Play vs Computer</button>
+              <button id="btn-local" class="btn btn-secondary" disabled>Play 2 Players</button>
             </div>
+            <p class="text-xs text-slate-500">Each phone taps <strong>Ready</strong>, then start the match from here.</p>
           </div>
 
-          <div class="flex gap-3 shrink-0">
-            <div class="text-center">
-              <img id="qr-p1" width="140" height="140" alt="P1 QR" class="bg-white rounded-xl p-2" />
-              <p class="text-xs text-sky-300 mt-1">Phone 1 · P1</p>
+          <div class="flex flex-col items-center gap-3 shrink-0">
+            <div class="flex gap-3">
+              <div class="text-center" id="qr-block-p1">
+                <img id="qr-p1" width="150" height="150" alt="QR code for player 1" class="bg-white rounded-xl p-2" />
+                <p class="text-xs text-sky-300 mt-1">Player 1</p>
+              </div>
+              <div class="text-center" id="qr-block-p2">
+                <img id="qr-p2" width="150" height="150" alt="QR code for player 2" class="bg-white rounded-xl p-2" />
+                <p class="text-xs text-rose-300 mt-1">Player 2</p>
+              </div>
             </div>
-            <div class="text-center">
-              <img id="qr-p2" width="140" height="140" alt="P2 QR" class="bg-white rounded-xl p-2" />
-              <p class="text-xs text-rose-300 mt-1">Phone 2 · P2</p>
-            </div>
+            <p class="text-xs text-slate-400 text-center max-w-[220px]">Scan with the phone camera</p>
           </div>
         </div>
       </div>
@@ -81,6 +86,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/games/pingpong/js/game.js?v=20260902b"></script>
+  <script src="/games/pingpong/js/game.js?v=20260902c"></script>
 </body>
 </html>

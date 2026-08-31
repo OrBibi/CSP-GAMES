@@ -5,32 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>שלט מחבט — Phone Tennis</title>
+  <title>שלט מחבט</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20260830f" />
+  <link rel="stylesheet" href="/css/style.css?v=20260902c" />
 </head>
 <body class="controller-body bg-slate-950 text-slate-100">
   <div class="controller-shell">
     <header class="flex items-start justify-between gap-3">
       <div>
-        <p class="text-xs uppercase tracking-widest font-semibold controller-accent" id="player-accent-label">Wii-style remote</p>
-        <h1 class="text-xl font-bold">הפלאפון = שלט</h1>
+        <p class="text-xs uppercase tracking-widest font-semibold controller-accent" id="player-accent-label">שלט תנועה</p>
+        <h1 class="text-xl font-bold">הפלאפון = מחבט</h1>
         <p id="slot-label" class="text-sm text-slate-400">מתחבר…</p>
       </div>
       <div class="text-left space-y-1">
-        <span class="status-pill" id="conn-pill">offline</span>
+        <span class="status-pill" id="conn-pill">לא מחובר</span>
         <p class="text-xs text-slate-500" id="room-label"></p>
       </div>
     </header>
 
     <div class="panel p-4 space-y-3">
       <p id="status-text" class="text-sm text-slate-300 leading-relaxed">
-        חבטות ימין/שמאל בלבד (הנחתה כבויה כרגע). סיווג לפי התחלה הפוך + תנועה למסך/גב.
+        מחזיקים את הפלאפון זקוף וחובטים ימינה או שמאלה כשהכדור מגיע אליכם.
       </p>
       <ol class="text-xs text-slate-400 space-y-1 list-decimal list-inside" id="hold-rules">
-        <li><strong>ימני – ימין:</strong> התחלה הפוך → תנועה לכיוון המסך</li>
-        <li><strong>ימני – שמאל:</strong> התחלה הפוך → תנועה לכיוון הגב</li>
-        <li>כדור בצד ימין של המגרש דורש חבטת ימין (ולהפך)</li>
+        <li>כדור בצד ימין של המגרש → חבטת ימין</li>
+        <li>כדור בצד שמאל של המגרש → חבטת שמאל</li>
+        <li>חבטה חזקה יותר = כדור מהיר יותר</li>
       </ol>
       <div class="space-y-2">
         <p class="text-xs text-slate-400">השם שלך (יופיע בלוח התוצאות):</p>
@@ -64,7 +64,7 @@
         </div>
       </div>
       <button type="button" id="btn-practice" class="btn btn-secondary w-full py-3 text-base" disabled>
-        מצב אימון חבטות (בלי כדור)
+        מצב אימון חבטות
       </button>
       <p id="secure-hint" class="text-xs text-amber-200/90 leading-relaxed hidden"></p>
     </div>
@@ -75,7 +75,7 @@
         <button type="button" id="btn-practice-exit" class="btn btn-ghost text-xs py-1 px-2">יציאה</button>
       </div>
       <p class="text-xs text-slate-400 leading-relaxed">
-        אין כדור — בודקים זיהוי צד, כיוון נחיתה (aim), תנועה ועוצמה.
+        בלי כדור — חובטים ורואים לאן הכדור היה הולך: צד, כיוון נחיתה ועוצמה.
       </p>
       <div id="practice-result" class="practice-result practice-idle">
         <div id="practice-side-label" class="practice-side-label">חכה לחבטה…</div>
@@ -96,7 +96,7 @@
         </div>
       </div>
       <p id="practice-hint" class="text-xs text-center text-slate-500">
-        aim: ימני — ימין+רצפה / שמאל+שמיים = צד נגדי · שמאלי — הפוך
+        זווית הפלאפון בסוף החבטה קובעת אם הכדור הולך לאותו צד או לצד הנגדי
       </p>
       <div class="grid grid-cols-3 gap-2 text-center text-xs">
         <div class="rounded-lg bg-slate-900/80 py-2">
@@ -130,7 +130,7 @@
           <div class="wii-label">P<span id="wii-slot">?</span></div>
         </div>
       </div>
-      <p class="text-center text-xs text-slate-400 mt-2" id="motion-readout">ממתין לחיישנים…</p>
+      <p class="text-center text-xs text-slate-400 mt-2" id="motion-readout">ממתין להפעלת תנועה…</p>
     </div>
 
     <div class="flex justify-between text-sm px-1 gap-2">
@@ -139,17 +139,17 @@
     </div>
 
     <details class="panel p-3 text-sm text-slate-400">
-      <summary class="cursor-pointer text-slate-300">גיבוי מגע (אם החיישנים לא עובדים)</summary>
+      <summary class="cursor-pointer text-slate-300">אין תנועה? שחקו במגע</summary>
       <div id="touch-pad" class="touch-pad mt-3" role="application" aria-label="Touch control pad">
         <div>
-          <p class="font-semibold text-slate-200">Touch pad</p>
-          <p class="text-xs mt-1">החלק ימין↔שמאל או מלמעלה למטה (הנחתה)</p>
+          <p class="font-semibold text-slate-200">אזור מגע</p>
+          <p class="text-xs mt-1">החלק ימינה או שמאלה כדי לחבוט</p>
         </div>
       </div>
     </details>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/games/tennis/js/controller.js?v=20260902b"></script>
+  <script src="/games/tennis/js/controller.js?v=20260902c"></script>
 </body>
 </html>
