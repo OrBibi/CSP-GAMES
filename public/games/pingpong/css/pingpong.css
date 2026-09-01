@@ -1,17 +1,4 @@
-#pp-root {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 18%, rgba(80, 50, 24, 0.28), transparent 55%),
-    radial-gradient(ellipse at center, #1a140e 0%, #07080c 78%);
-}
-
-#pp-root #game-canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
+/* Ping pong uses the shared #game-root shell; indoor club instead of sky. */
+#game-root {
+  background: #16110c;
 }
