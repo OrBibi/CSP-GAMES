@@ -1468,7 +1468,8 @@
   document.body.addEventListener(
     'touchmove',
     (e) => {
-      if (e.target.closest('.wii-stage') || e.target.closest('.touch-pad')) e.preventDefault();
+      // Only the touch-swing pad captures gestures. Everywhere else must scroll.
+      if (e.target.closest('.touch-pad')) e.preventDefault();
     },
     { passive: false }
   );

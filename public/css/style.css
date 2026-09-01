@@ -1087,7 +1087,18 @@ body {
 /* --------------------------------------------------------------------------
    13. Phone controller
    -------------------------------------------------------------------------- */
+html:has(body.controller-body) {
+  height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 body.controller-body {
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
   user-select: none;
@@ -1131,13 +1142,11 @@ body.controller-body.player-p2 .controller-shell {
 
 .controller-shell {
   min-height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   padding: 0.9rem;
+  padding-bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
   gap: 0.85rem;
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
@@ -1193,11 +1202,11 @@ body.controller-body textarea {
   gap: 0.7rem;
 }
 
-/* Primary swing surface: big, always reachable with a thumb. */
+/* Phone visualization — keep it compact so the how-to sections stay reachable. */
 .wii-stage {
   flex: 0 0 auto;
-  min-height: 9.5rem;
-  touch-action: none;
+  min-height: 6.5rem;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1206,12 +1215,12 @@ body.controller-body textarea {
 }
 
 body.controller-body.practice-active .wii-stage {
-  min-height: 7rem;
+  min-height: 5.5rem;
 }
 
 .wii-remote {
-  width: 4.2rem;
-  height: 11rem;
+  width: 3.4rem;
+  height: 8.2rem;
   border-radius: 0.85rem;
   background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 55%, #94a3b8 100%);
   box-shadow:
@@ -1257,7 +1266,7 @@ body.controller-body.practice-active .wii-stage {
 
 .touch-pad {
   flex: 0 0 auto;
-  min-height: 9rem;
+  min-height: 7.5rem;
   touch-action: none;
   border-radius: var(--radius-lg);
   border: 1px dashed var(--border-strong);
@@ -1270,10 +1279,11 @@ body.controller-body.practice-active .wii-stage {
   color: var(--text-muted);
 }
 
-/* Sticky live score/message bar at the bottom of the phone. */
+/* Live score/message bar — stays at the end of the page, not over the how-to text. */
 .ctl-live {
   position: sticky;
   bottom: 0;
+  z-index: 3;
   margin-top: auto;
   display: flex;
   align-items: center;

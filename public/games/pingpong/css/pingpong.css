@@ -3,7 +3,9 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: radial-gradient(ellipse at center, #16324f 0%, #070b16 72%);
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(80, 50, 24, 0.28), transparent 55%),
+    radial-gradient(ellipse at center, #1a140e 0%, #07080c 78%);
 }
 
 #pp-root #game-canvas {
